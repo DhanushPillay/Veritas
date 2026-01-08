@@ -1,0 +1,8 @@
+{
+  "name": "Veritas",
+  "description": "An AI-powered verification platform for news agencies to detect deepfakes and verify text, audio, and video authenticity.",
+  "requestFramePermissions": [
+    "microphone",
+    "camera"
+  ]
+}
