@@ -48,7 +48,9 @@ const RESPONSE_SCHEMA = {
           label: { type: Type.STRING },
           value: { type: Type.STRING },
           status: { type: Type.STRING, enum: ['pass', 'fail', 'warn'] },
-        }
+          explanation: { type: Type.STRING, description: "A brief sentence explaining why this technical check passed, failed, or warned." }
+        },
+        required: ['label', 'value', 'status', 'explanation']
       },
       description: "Technical analysis points (e.g., 'Lip Sync', 'Audio Spectrum', 'Metadata')."
     }
@@ -73,7 +75,11 @@ export const verifyMedia = async (
   Your job is to verify the authenticity of ${type} input. 
   Detect deepfakes, AI generation artifacts, misinformation, or inconsistencies. 
   Be rigorous. If audio/video, look for artifacts, sync issues, and spectral anomalies. 
-  If text, check facts and logical consistency based on your internal knowledge base.`;
+  If text, check facts and logical consistency based on your internal knowledge base.
+  
+  For the technicalDetails section:
+  - Generate specific technical checks relevant to the media type.
+  - Provide a short but insightful explanation for each check, especially if it fails or warns.`;
 
   if (useSearch) {
     systemInstruction += ` You have access to Google Search. 

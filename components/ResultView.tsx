@@ -1,16 +1,19 @@
 import React from 'react';
-import { VerificationResult } from '../types';
+import { VerificationResult, MediaType } from '../types';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import { IconShieldCheck, IconAlertTriangle } from './Icons';
+import { IconShieldCheck, IconAlertTriangle, IconFileText, IconImage, IconVideo, IconMic } from './Icons';
 
 interface ResultViewProps {
   result: VerificationResult;
   onReset: () => void;
+  mediaThumbnail?: string;
+  mediaType?: MediaType;
 }
 
-const ResultView: React.FC<ResultViewProps> = ({ result, onReset }) => {
+const ResultView: React.FC<ResultViewProps> = ({ result, onReset, mediaThumbnail, mediaType }) => {
   const isAuthentic = result.verdict === 'Authentic';
   const isSuspicious = result.verdict === 'Fake/Generated' || result.verdict === 'Suspicious';
+  const isInconclusive = result.verdict === 'Inconclusive';
   
   const color = isAuthentic ? '#10b981' : isSuspicious ? '#ef4444' : '#f59e0b';
   const verdictColorClass = isAuthentic ? 'text-emerald-500' : isSuspicious ? 'text-red-500' : 'text-amber-500';
@@ -21,9 +24,43 @@ const ResultView: React.FC<ResultViewProps> = ({ result, onReset }) => {
     { name: 'Remaining', value: 100 - result.confidence },
   ];
 
+  const getTypeIcon = () => {
+    switch (mediaType) {
+      case 'text': return <IconFileText className="w-5 h-5" />;
+      case 'image': return <IconImage className="w-5 h-5" />;
+      case 'audio': return <IconMic className="w-5 h-5" />;
+      case 'video': return <IconVideo className="w-5 h-5" />;
+      default: return null;
+    }
+  };
+
   return (
     <div className="w-full max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
       
+      {/* Evidence Preview Banner */}
+      {mediaThumbnail && mediaType !== 'text' && (
+        <div className="mb-8 rounded-2xl overflow-hidden border border-slate-700/50 bg-slate-800/50 shadow-2xl relative group">
+          <div className="absolute top-4 left-4 z-10 bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-slate-700 flex items-center gap-2 text-xs font-medium text-slate-300">
+            {getTypeIcon()}
+            <span className="uppercase">{mediaType} Evidence</span>
+          </div>
+          <div className="w-full h-48 md:h-64 bg-slate-900 flex items-center justify-center overflow-hidden">
+             <img 
+               src={mediaThumbnail} 
+               alt="Evidence Preview" 
+               className={`w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 ${mediaType === 'audio' ? 'opacity-80' : ''}`} 
+             />
+             {mediaType === 'audio' && (
+               <div className="absolute inset-0 flex items-center justify-center">
+                 <div className="w-16 h-16 rounded-full bg-veritas-500/20 flex items-center justify-center backdrop-blur-sm border border-veritas-500/50">
+                   <IconMic className="w-8 h-8 text-veritas-400" />
+                 </div>
+               </div>
+             )}
+          </div>
+        </div>
+      )}
+
       {/* Header Banner */}
       <div className={`p-6 rounded-2xl border ${bgBadgeClass} mb-8 flex items-center justify-between`}>
         <div className="flex items-center gap-4">
@@ -63,6 +100,19 @@ const ResultView: React.FC<ResultViewProps> = ({ result, onReset }) => {
         </div>
       </div>
 
+      {/* Inconclusive Disclaimer */}
+      {isInconclusive && (
+        <div className="mb-8 p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 flex items-start gap-4 animate-in fade-in slide-in-from-top-2">
+          <IconAlertTriangle className="w-6 h-6 text-amber-500 shrink-0 mt-0.5" />
+          <div>
+            <h4 className="text-amber-400 font-semibold mb-1">Manual Review Recommended</h4>
+            <p className="text-slate-300 text-sm leading-relaxed">
+              The system could not definitively verify the authenticity of this media. Factors such as low resolution, significant compression artifacts, lack of context, or ambiguous features prevented a clear verdict. We strongly recommend further manual review by a human expert.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Main Findings */}
         <div className="md:col-span-2 space-y-6">
@@ -92,18 +142,29 @@ const ResultView: React.FC<ResultViewProps> = ({ result, onReset }) => {
             <h3 className="text-lg font-semibold text-white mb-4">Technical Analysis</h3>
             <div className="space-y-4">
               {result.technicalDetails.map((item, idx) => (
-                <div key={idx} className="flex flex-col gap-1 pb-3 border-b border-slate-700 last:border-0 last:pb-0">
-                  <span className="text-xs text-slate-400 uppercase">{item.label}</span>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-200 font-medium">{item.value}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      item.status === 'pass' ? 'bg-emerald-500/20 text-emerald-400' :
-                      item.status === 'fail' ? 'bg-red-500/20 text-red-400' :
-                      'bg-amber-500/20 text-amber-400'
+                <div key={idx} className="flex flex-col gap-2 pb-4 border-b border-slate-700 last:border-0 last:pb-0">
+                  <div className="flex justify-between items-start gap-2">
+                    <div>
+                        <span className="text-xs text-slate-400 uppercase tracking-wider font-semibold block">{item.label}</span>
+                        <div className="text-sm text-slate-200 font-medium mt-0.5">{item.value}</div>
+                    </div>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold tracking-wide uppercase shrink-0 ${
+                      item.status === 'pass' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                      item.status === 'fail' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
+                      'bg-amber-500/20 text-amber-400 border border-amber-500/30'
                     }`}>
-                      {item.status.toUpperCase()}
+                      {item.status}
                     </span>
                   </div>
+                  {item.explanation && (
+                    <div className={`text-xs p-2.5 rounded-lg leading-relaxed ${
+                         item.status === 'pass' ? 'bg-slate-700/30 text-slate-400' :
+                         item.status === 'fail' ? 'bg-red-500/10 text-red-300/90 border border-red-500/20' :
+                         'bg-amber-500/10 text-amber-300/90 border border-amber-500/20'
+                    }`}>
+                      {item.explanation}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

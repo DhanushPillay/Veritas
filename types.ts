@@ -16,6 +16,7 @@ export interface VerificationResult {
     label: string;
     value: string;
     status: 'pass' | 'fail' | 'warn';
+    explanation?: string;
   }[];
   sources?: {
     title: string;
@@ -28,5 +29,6 @@ export interface HistoryItem {
   timestamp: number;
   type: MediaType;
   preview: string;
+  mediaThumbnail?: string; // Base64 string for image/video frame/audio waveform
   result: VerificationResult;
 }

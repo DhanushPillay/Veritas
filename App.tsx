@@ -8,7 +8,8 @@ import {
   IconUpload, 
   IconActivity,
   IconAlertTriangle,
-  IconTrash
+  IconTrash,
+  IconCheck
 } from './components/Icons';
 import { verifyMedia } from './services/geminiService';
 import { MediaType, AnalysisStatus, VerificationResult, HistoryItem } from './types';
@@ -68,7 +69,130 @@ const Toggle: React.FC<{
   </button>
 );
 
+// Thumbnail Generator Utility
+const generateThumbnail = async (file: File, type: MediaType): Promise<string | undefined> => {
+  if (type === 'text') return undefined;
+  
+  try {
+    if (type === 'image') {
+      return await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const maxSize = 300;
+            let width = img.width;
+            let height = img.height;
+            
+            if (width > height) {
+              if (width > maxSize) {
+                height *= maxSize / width;
+                width = maxSize;
+              }
+            } else {
+              if (height > maxSize) {
+                width *= maxSize / height;
+                height = maxSize;
+              }
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            ctx?.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', 0.6));
+          };
+          img.src = e.target?.result as string;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+    
+    if (type === 'video') {
+       return await new Promise((resolve) => {
+         const video = document.createElement('video');
+         video.preload = 'metadata';
+         video.src = URL.createObjectURL(file);
+         video.muted = true;
+         video.playsInline = true;
+         video.currentTime = 0.5; // Capture frame at 0.5s
+         
+         const capture = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const maxSize = 300;
+            let width = video.videoWidth;
+            let height = video.videoHeight;
+             if (width > height) {
+              if (width > maxSize) {
+                height *= maxSize / width;
+                width = maxSize;
+              }
+            } else {
+              if (height > maxSize) {
+                width *= maxSize / height;
+                height = maxSize;
+              }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            ctx?.drawImage(video, 0, 0, width, height);
+            URL.revokeObjectURL(video.src);
+            resolve(canvas.toDataURL('image/jpeg', 0.6));
+         };
+
+         video.onseeked = capture;
+         video.onloadeddata = () => {
+           // Fallback if seek doesn't trigger
+           setTimeout(capture, 500); 
+         };
+         
+         // Timeout fallback
+         setTimeout(() => {
+             resolve(undefined); 
+         }, 3000);
+       });
+    }
+
+    if (type === 'audio') {
+        // Generate synthetic waveform visual
+        const canvas = document.createElement('canvas');
+        canvas.width = 300;
+        canvas.height = 80;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+            ctx.fillStyle = '#0f172a'; // matches slate-900
+            ctx.fillRect(0,0,300,80);
+            
+            const barWidth = 4;
+            const gap = 2;
+            const bars = Math.floor(300 / (barWidth + gap));
+            
+            ctx.fillStyle = '#38bdf8'; // veritas-400
+            for(let i=0; i<bars; i++) {
+                // Generate a "waveform" looking random height
+                const h = Math.random() * 50 + 10;
+                const x = i * (barWidth + gap);
+                const y = (80 - h) / 2;
+                ctx.fillRect(x, y, barWidth, h);
+            }
+        }
+        return canvas.toDataURL('image/png');
+    }
+  } catch (e) {
+    console.error("Thumbnail generation failed", e);
+    return undefined;
+  }
+};
+
 const RATE_LIMIT_SECONDS = 10;
+
+interface AnalysisStep {
+  id: number;
+  label: string;
+  status: 'pending' | 'processing' | 'completed';
+}
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<MediaType>('text');
@@ -80,7 +204,8 @@ const App: React.FC = () => {
   const [isCheckingKey, setIsCheckingKey] = useState<boolean>(true);
   const [useSearch, setUseSearch] = useState<boolean>(false);
   const [cooldown, setCooldown] = useState<number>(0);
-  const [progressMessage, setProgressMessage] = useState<string>('');
+  const [currentThumbnail, setCurrentThumbnail] = useState<string | undefined>(undefined);
+  const [analysisSteps, setAnalysisSteps] = useState<AnalysisStep[]>([]);
   
   // History State
   const [history, setHistory] = useState<HistoryItem[]>(() => {
@@ -143,38 +268,31 @@ const App: React.FC = () => {
     }
   };
 
-  const handleVerify = async () => {
-    if (cooldown > 0) return;
-    if (!inputText && !selectedFile) return;
-
-    setCooldown(RATE_LIMIT_SECONDS);
-    setStatus(AnalysisStatus.ANALYZING);
-
-    // Dynamic steps based on context
+  const getAnalysisStepsList = (type: MediaType, search: boolean): string[] => {
     const steps = ['Initializing forensic protocols...'];
     
-    if (activeTab === 'text') {
+    if (type === 'text') {
       steps.push(
         'Analyzing linguistic patterns...',
         'Checking logical consistency...',
         'Detecting LLM generation markers...',
         'Verifying factual claims...'
       );
-    } else if (activeTab === 'image') {
+    } else if (type === 'image') {
       steps.push(
         'Scanning Exif & metadata headers...',
         'Analyzing Error Level Analysis (ELA)...',
         'Checking shadow and lighting coherence...',
         'Scanning for generative noise artifacts...'
       );
-    } else if (activeTab === 'audio') {
+    } else if (type === 'audio') {
       steps.push(
         'Generating spectral analysis...',
         'Detecting voice cloning artifacts...',
         'Analyzing breathing and pause patterns...',
         'Checking background noise continuity...'
       );
-    } else if (activeTab === 'video') {
+    } else if (type === 'video') {
       steps.push(
         'Extracting keyframes for analysis...',
         'Checking audio-visual synchronization...',
@@ -183,7 +301,7 @@ const App: React.FC = () => {
       );
     }
 
-    if (useSearch) {
+    if (search) {
       steps.push(
         'Querying global news index...',
         'Cross-referencing trusted sources...',
@@ -192,19 +310,52 @@ const App: React.FC = () => {
     }
     
     steps.push('Compiling final verdict...');
+    return steps;
+  };
 
-    setProgressMessage(steps[0]);
-    let stepIndex = 0;
-    
+  const handleVerify = async () => {
+    if (cooldown > 0) return;
+    if (!inputText && !selectedFile) return;
+
+    setCooldown(RATE_LIMIT_SECONDS);
+    setStatus(AnalysisStatus.ANALYZING);
+
+    // Initialize Analysis Steps
+    const stepLabels = getAnalysisStepsList(activeTab, useSearch);
+    const initialSteps: AnalysisStep[] = stepLabels.map((label, idx) => ({
+      id: idx,
+      label,
+      status: idx === 0 ? 'processing' : 'pending'
+    }));
+    setAnalysisSteps(initialSteps);
+
+    let currentStepIndex = 0;
     const intervalId = setInterval(() => {
-      stepIndex++;
-      if (stepIndex < steps.length) {
-        setProgressMessage(steps[stepIndex]);
-      }
-    }, 2000); // Update message every 2s
+        setAnalysisSteps(prev => {
+            if (currentStepIndex >= prev.length - 1) return prev;
+            
+            const next = [...prev];
+            // Mark current as completed
+            next[currentStepIndex] = { ...next[currentStepIndex], status: 'completed' };
+            
+            // Move to next
+            currentStepIndex++;
+            next[currentStepIndex] = { ...next[currentStepIndex], status: 'processing' };
+            
+            return next;
+        });
+    }, 1500);
 
     try {
       const content = activeTab === 'text' ? inputText : selectedFile!;
+      
+      // Generate thumbnail concurrently with verification if possible, but simplest to wait
+      let thumb: string | undefined = undefined;
+      if (selectedFile) {
+        thumb = await generateThumbnail(selectedFile, activeTab);
+      }
+      setCurrentThumbnail(thumb);
+
       const data = await verifyMedia(activeTab, content, useSearch);
       
       // Save to History
@@ -215,6 +366,7 @@ const App: React.FC = () => {
         preview: activeTab === 'text' 
           ? (inputText.length > 60 ? inputText.substring(0, 60) + '...' : inputText)
           : (selectedFile?.name || 'Unknown File'),
+        mediaThumbnail: thumb,
         result: data
       };
       
@@ -238,11 +390,15 @@ const App: React.FC = () => {
     setResult(null);
     setInputText('');
     setSelectedFile(null);
-    setProgressMessage('');
+    setAnalysisSteps([]);
+    setCurrentThumbnail(undefined);
   };
   
   const loadHistoryItem = (item: HistoryItem) => {
     setResult(item.result);
+    // When loading history, we set the active tab to match the item type so UI is consistent
+    setActiveTab(item.type);
+    setCurrentThumbnail(item.mediaThumbnail);
     setStatus(AnalysisStatus.COMPLETED);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -450,20 +606,34 @@ const App: React.FC = () => {
                         <div 
                           key={item.id}
                           onClick={() => loadHistoryItem(item)}
-                          className="bg-slate-800/30 border border-slate-700/50 hover:border-veritas-500/50 hover:bg-slate-800/60 rounded-xl p-4 cursor-pointer transition-all group"
+                          className="bg-slate-800/30 border border-slate-700/50 hover:border-veritas-500/50 hover:bg-slate-800/60 rounded-xl overflow-hidden cursor-pointer transition-all group flex"
                         >
-                          <div className="flex justify-between items-start mb-2">
-                             <div className="flex items-center gap-2 text-slate-400 group-hover:text-veritas-400 transition-colors">
+                          {/* Thumbnail Preview in List */}
+                          {item.mediaThumbnail ? (
+                            <div className="w-24 h-full bg-slate-900 shrink-0 relative">
+                               <img src={item.mediaThumbnail} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" alt="preview" />
+                               {item.type === 'audio' && <IconMic className="absolute inset-0 m-auto w-6 h-6 text-white/50" />}
+                               {item.type === 'video' && <IconVideo className="absolute inset-0 m-auto w-6 h-6 text-white/50" />}
+                            </div>
+                          ) : (
+                             <div className="w-24 h-full bg-slate-800/50 flex items-center justify-center shrink-0">
                                {getTypeIcon(item.type)}
-                               <span className="text-xs font-mono">{new Date(item.timestamp).toLocaleDateString()}</span>
                              </div>
-                             <span className={`text-xs font-bold ${badgeColor} px-2 py-0.5 rounded-full bg-slate-900/50`}>
-                               {item.result.verdict}
-                             </span>
+                          )}
+
+                          <div className="p-4 flex-1 min-w-0">
+                            <div className="flex justify-between items-start mb-2">
+                               <div className="flex items-center gap-2 text-slate-400 group-hover:text-veritas-400 transition-colors">
+                                 <span className="text-xs font-mono">{new Date(item.timestamp).toLocaleDateString()}</span>
+                               </div>
+                               <span className={`text-xs font-bold ${badgeColor} px-2 py-0.5 rounded-full bg-slate-900/50`}>
+                                 {item.result.verdict}
+                               </span>
+                            </div>
+                            <p className="text-sm text-slate-300 line-clamp-2">
+                               {item.preview}
+                            </p>
                           </div>
-                          <p className="text-sm text-slate-300 line-clamp-2">
-                             {item.preview}
-                          </p>
                         </div>
                       );
                     })}
@@ -475,27 +645,50 @@ const App: React.FC = () => {
         )}
 
         {status === AnalysisStatus.ANALYZING && (
-          <div className="flex flex-col items-center justify-center min-h-[50vh] animate-in fade-in duration-700">
-            <div className="relative">
-              <div className="w-24 h-24 rounded-full border-t-4 border-b-4 border-veritas-500 animate-spin"></div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <IconShieldCheck className="w-10 h-10 text-veritas-500 opacity-50" />
-              </div>
+          <div className="flex flex-col items-center justify-center min-h-[50vh] animate-in fade-in duration-700 max-w-md mx-auto w-full">
+            {/* Spinner Header */}
+            <div className="mb-8 text-center">
+                 <div className="relative inline-block">
+                    <div className="w-16 h-16 rounded-full border-4 border-slate-700 border-t-veritas-500 animate-spin"></div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <IconShieldCheck className="w-8 h-8 text-slate-600" />
+                    </div>
+                </div>
+                <h2 className="mt-4 text-xl font-bold text-white">Analyzing Integrity</h2>
             </div>
-            <h2 className="mt-8 text-2xl font-bold text-white">Analyzing Integrity</h2>
-            <div className="mt-4 flex flex-col items-center gap-2">
-              <p className="text-veritas-400 font-medium animate-pulse text-lg">{progressMessage}</p>
-              <div className="flex gap-1 mt-1">
-                <span className="w-2 h-2 rounded-full bg-veritas-600 animate-bounce [animation-delay:-0.3s]"></span>
-                <span className="w-2 h-2 rounded-full bg-veritas-500 animate-bounce [animation-delay:-0.15s]"></span>
-                <span className="w-2 h-2 rounded-full bg-veritas-400 animate-bounce"></span>
-              </div>
+
+            {/* Steps List */}
+            <div className="w-full space-y-3 bg-slate-800/30 p-6 rounded-xl border border-slate-700/50 backdrop-blur-sm shadow-xl">
+                {analysisSteps.map((step) => (
+                    <div key={step.id} className="flex items-center gap-3">
+                        <div className="shrink-0 w-5 h-5 flex items-center justify-center">
+                            {step.status === 'completed' && <IconCheck className="w-5 h-5 text-emerald-500 animate-in zoom-in duration-300" />}
+                            {step.status === 'processing' && (
+                                <div className="w-4 h-4 rounded-full border-2 border-veritas-500 border-r-transparent animate-spin" />
+                            )}
+                            {step.status === 'pending' && (
+                                <div className="w-2 h-2 rounded-full bg-slate-700" />
+                            )}
+                        </div>
+                        <span className={`text-sm transition-colors duration-300 ${
+                            step.status === 'processing' ? 'text-white font-medium scale-105 origin-left' : 
+                            step.status === 'completed' ? 'text-slate-400' : 'text-slate-600'
+                        }`}>
+                            {step.label}
+                        </span>
+                    </div>
+                ))}
             </div>
           </div>
         )}
 
         {status === AnalysisStatus.COMPLETED && result && (
-          <ResultView result={result} onReset={resetAnalysis} />
+          <ResultView 
+            result={result} 
+            onReset={resetAnalysis} 
+            mediaThumbnail={currentThumbnail} 
+            mediaType={activeTab} 
+          />
         )}
 
         {status === AnalysisStatus.ERROR && (
