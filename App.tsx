@@ -271,45 +271,73 @@ const App: React.FC = () => {
   const getAnalysisStepsList = (type: MediaType, search: boolean): string[] => {
     const steps = ['Initializing forensic protocols...'];
     
-    if (type === 'text') {
-      steps.push(
-        'Analyzing linguistic patterns...',
-        'Checking logical consistency...',
-        'Detecting LLM generation markers...',
-        'Verifying factual claims...'
-      );
-    } else if (type === 'image') {
-      steps.push(
-        'Scanning Exif & metadata headers...',
-        'Analyzing Error Level Analysis (ELA)...',
-        'Checking shadow and lighting coherence...',
-        'Scanning for generative noise artifacts...'
-      );
-    } else if (type === 'audio') {
-      steps.push(
-        'Generating spectral analysis...',
-        'Detecting voice cloning artifacts...',
-        'Analyzing breathing and pause patterns...',
-        'Checking background noise continuity...'
-      );
-    } else if (type === 'video') {
-      steps.push(
-        'Extracting keyframes for analysis...',
-        'Checking audio-visual synchronization...',
-        'Analyzing temporal consistency...',
-        'Detecting face manipulation artifacts...'
-      );
+    // Media-specific Core Analysis
+    switch (type) {
+      case 'text':
+        steps.push(
+          'Analyzing linguistic patterns...',
+          'Checking logical consistency...',
+          'Detecting LLM generation markers...'
+        );
+        break;
+      case 'image':
+        steps.push(
+          'Scanning Exif & metadata headers...',
+          'Analyzing Error Level Analysis (ELA)...',
+          'Checking shadow and lighting coherence...',
+          'Scanning for generative noise artifacts...'
+        );
+        break;
+      case 'audio':
+        steps.push(
+          'Generating spectral analysis...',
+          'Detecting voice cloning artifacts...',
+          'Analyzing breathing and pause patterns...'
+        );
+        break;
+      case 'video':
+        steps.push(
+          'Extracting keyframes for analysis...',
+          'Checking audio-visual synchronization...',
+          'Analyzing temporal consistency...',
+          'Detecting face manipulation artifacts...'
+        );
+        break;
     }
 
+    // Dynamic Search/Context Steps
     if (search) {
-      steps.push(
-        'Querying global news index...',
-        'Cross-referencing trusted sources...',
-        'Verifying media provenance...'
-      );
+      steps.push('Connecting to secure global index...');
+      if (type === 'text') {
+        steps.push(
+          'Querying live news knowledge base...',
+          'Cross-referencing factual claims...',
+          'Verifying citations and quotes...'
+        );
+      } else if (type === 'image') {
+        steps.push(
+          'Performing reverse image search...',
+          'Checking media provenance registries...',
+          'Cross-referencing stock libraries...'
+        );
+      } else if (type === 'video') {
+        steps.push(
+          'Searching frame fingerprints online...',
+          'Verifying event location and timeline...',
+          'Checking source credibility...'
+        );
+      } else if (type === 'audio') {
+        steps.push(
+          'Matching voice prints against public records...',
+          'Verifying context via news reports...',
+          'Checking for existing source material...'
+        );
+      }
+    } else {
+      steps.push('Skipping external search (Local Analysis)...');
     }
     
-    steps.push('Compiling final verdict...');
+    steps.push('Compiling final forensic verdict...');
     return steps;
   };
 

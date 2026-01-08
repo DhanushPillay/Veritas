@@ -48,7 +48,7 @@ const RESPONSE_SCHEMA = {
           label: { type: Type.STRING },
           value: { type: Type.STRING },
           status: { type: Type.STRING, enum: ['pass', 'fail', 'warn'] },
-          explanation: { type: Type.STRING, description: "A brief sentence explaining why this technical check passed, failed, or warned." }
+          explanation: { type: Type.STRING, description: "A detailed explanation of what this metric analyzes and its specific implication for this media's authenticity." }
         },
         required: ['label', 'value', 'status', 'explanation']
       },
@@ -79,7 +79,7 @@ export const verifyMedia = async (
   
   For the technicalDetails section:
   - Generate specific technical checks relevant to the media type.
-  - Provide a short but insightful explanation for each check, especially if it fails or warns.`;
+  - For the 'explanation' field: Provide a detailed insight. Explain what the metric checks (e.g., "Error Level Analysis detects compression inconsistencies") AND what the specific finding implies for this media (e.g., "Uniform compression suggests authenticity").`;
 
   if (useSearch) {
     systemInstruction += ` You have access to Google Search. 
