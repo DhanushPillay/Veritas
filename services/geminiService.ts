@@ -65,8 +65,9 @@ export const verifyMedia = async (
   const apiKey = process.env.API_KEY || '';
   const ai = new GoogleGenAI({ apiKey });
 
-  // Use gemini-2.5-flash-latest for best tool performance
-  const model = 'gemini-2.5-flash-latest';
+  // Use gemini-2.0-flash for reliable multimodal and tool use. 
+  // 'gemini-2.5-flash-latest' was causing 404s as it is not a valid public model alias yet.
+  const model = 'gemini-2.0-flash';
   
   let systemInstruction = `You are Veritas, a world-class media forensics and fact-checking AI. 
   Your job is to verify the authenticity of ${type} input. 

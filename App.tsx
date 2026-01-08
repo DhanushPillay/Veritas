@@ -7,10 +7,11 @@ import {
   IconImage, 
   IconUpload, 
   IconActivity,
-  IconAlertTriangle
+  IconAlertTriangle,
+  IconTrash
 } from './components/Icons';
 import { verifyMedia } from './services/geminiService';
-import { MediaType, AnalysisStatus, VerificationResult } from './types';
+import { MediaType, AnalysisStatus, VerificationResult, HistoryItem } from './types';
 import ResultView from './components/ResultView';
 
 // --- Components defined internally to keep files minimized but structured ---
@@ -80,6 +81,22 @@ const App: React.FC = () => {
   const [useSearch, setUseSearch] = useState<boolean>(false);
   const [cooldown, setCooldown] = useState<number>(0);
   const [progressMessage, setProgressMessage] = useState<string>('');
+  
+  // History State
+  const [history, setHistory] = useState<HistoryItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('veritas_history');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.warn("Failed to load history", e);
+      return [];
+    }
+  });
+
+  // Persist history
+  useEffect(() => {
+    localStorage.setItem('veritas_history', JSON.stringify(history));
+  }, [history]);
 
   useEffect(() => {
     const checkKey = async () => {
@@ -189,6 +206,19 @@ const App: React.FC = () => {
     try {
       const content = activeTab === 'text' ? inputText : selectedFile!;
       const data = await verifyMedia(activeTab, content, useSearch);
+      
+      // Save to History
+      const newItem: HistoryItem = {
+        id: crypto.randomUUID(),
+        timestamp: Date.now(),
+        type: activeTab,
+        preview: activeTab === 'text' 
+          ? (inputText.length > 60 ? inputText.substring(0, 60) + '...' : inputText)
+          : (selectedFile?.name || 'Unknown File'),
+        result: data
+      };
+      
+      setHistory(prev => [newItem, ...prev]);
       setResult(data);
       setStatus(AnalysisStatus.COMPLETED);
     } catch (error: any) {
@@ -210,6 +240,18 @@ const App: React.FC = () => {
     setSelectedFile(null);
     setProgressMessage('');
   };
+  
+  const loadHistoryItem = (item: HistoryItem) => {
+    setResult(item.result);
+    setStatus(AnalysisStatus.COMPLETED);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  
+  const clearHistory = () => {
+    if (confirm('Are you sure you want to clear your verification history?')) {
+      setHistory([]);
+    }
+  };
 
   const getAcceptTypes = () => {
     switch (activeTab) {
@@ -217,6 +259,15 @@ const App: React.FC = () => {
       case 'video': return 'video/*';
       case 'image': return 'image/*';
       default: return '*';
+    }
+  };
+  
+  const getTypeIcon = (type: MediaType) => {
+    switch (type) {
+      case 'text': return <IconFileText className="w-4 h-4" />;
+      case 'image': return <IconImage className="w-4 h-4" />;
+      case 'audio': return <IconMic className="w-4 h-4" />;
+      case 'video': return <IconVideo className="w-4 h-4" />;
     }
   };
 
@@ -374,6 +425,51 @@ const App: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Recent Analysis Section */}
+              {history.length > 0 && (
+                <div className="max-w-4xl mx-auto mt-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-slate-300">Recent Analysis</h3>
+                    <button 
+                      onClick={clearHistory}
+                      className="flex items-center gap-2 text-xs text-slate-500 hover:text-red-400 transition-colors"
+                    >
+                      <IconTrash className="w-3 h-3" />
+                      Clear History
+                    </button>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {history.map(item => {
+                      const isAuthentic = item.result.verdict === 'Authentic';
+                      const isSuspicious = item.result.verdict === 'Fake/Generated' || item.result.verdict === 'Suspicious';
+                      const badgeColor = isAuthentic ? 'text-emerald-400' : isSuspicious ? 'text-red-400' : 'text-amber-400';
+                      
+                      return (
+                        <div 
+                          key={item.id}
+                          onClick={() => loadHistoryItem(item)}
+                          className="bg-slate-800/30 border border-slate-700/50 hover:border-veritas-500/50 hover:bg-slate-800/60 rounded-xl p-4 cursor-pointer transition-all group"
+                        >
+                          <div className="flex justify-between items-start mb-2">
+                             <div className="flex items-center gap-2 text-slate-400 group-hover:text-veritas-400 transition-colors">
+                               {getTypeIcon(item.type)}
+                               <span className="text-xs font-mono">{new Date(item.timestamp).toLocaleDateString()}</span>
+                             </div>
+                             <span className={`text-xs font-bold ${badgeColor} px-2 py-0.5 rounded-full bg-slate-900/50`}>
+                               {item.result.verdict}
+                             </span>
+                          </div>
+                          <p className="text-sm text-slate-300 line-clamp-2">
+                             {item.preview}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
