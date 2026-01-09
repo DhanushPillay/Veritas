@@ -1,136 +1,101 @@
-# Veritas - AI Media Verification & Forensics Platform
+# Veritas - Detect Fake Media with AI
 
-**Veritas** is an advanced media forensics system designed to detect deepfakes, AI-generated content, and disinformation. Powered by Google's **Gemini 2.0 Flash** and custom-trained models, it provides real-time verification across text, image, audio, and video formats.
-
-![Veritas](https://img.shields.io/badge/Status-Active-success) ![Python](https://img.shields.io/badge/Python-3.10+-blue) ![License](https://img.shields.io/badge/License-MIT-green)
+**Veritas** helps you figure out if a photo, video, audio, or text is real or fake. It uses artificial intelligence to spot deepfakes, AI-generated images, and misleading content.
 
 ---
 
-## 🚀 Key Features
+## What Does Veritas Do?
 
-### Multimodal Forensic Analysis
-- **📄 Text Verification**: LLM fingerprinting, fact-checking, logical consistency analysis
-- **🖼️ Image Forensics**: Error Level Analysis, generative artifact detection, EXIF inspection
-- **🎙️ Audio Analysis**: Spectral anomaly detection, voice cloning detection, splicing analysis
-- **🎥 Video Deepfake Detection**: Temporal consistency, lip-sync analysis, lighting physics
+### 🖼️ Check Images
+Upload any image and Veritas will tell you:
+- Is this a real photo or AI-generated?
+- Has someone edited or manipulated this image?
+- Are there signs of Photoshop or other editing tools?
+- Does the lighting and shadows look natural?
 
-### Live Web Provenance
-- Reverse image search integration
-- Context verification via Google Search grounding
-- Source attribution and fact-check cross-referencing
-
-### AI Learning System
-- User feedback loop for continuous improvement
-- Pattern learning from verified corrections
-- Supabase-backed pattern storage
+**How it works**: The AI looks for tiny mistakes that fake images often have - like weird hands, blurry text, or lighting that doesn't match.
 
 ---
 
-## 📁 Project Structure
+### 🎥 Check Videos
+Upload a video to detect deepfakes:
+- Is the face in the video real or pasted on?
+- Do the lips match what the person is saying?
+- Does the face move naturally or does it glitch?
 
-```
-Veritas/
-├── index.html                 # Main entry point
-├── frontend/
-│   ├── pages/
-│   │   ├── scanning.html      # Analysis loading screen
-│   │   └── results.html       # Results display
-│   ├── css/styles.css         # Styling
-│   └── js/
-│       ├── shared.js          # Common utilities
-│       └── icons.js           # SVG icons
-├── backend/
-│   ├── app.py                 # Flask API server
-│   ├── config.py              # Configuration
-│   ├── forensics/             # Image forensics modules
-│   ├── services/              # External API integrations
-│   └── learning/              # AI learning system
-└── training/
-    ├── train_deepfake.py      # Local training script
-    ├── train_colab.py         # Google Colab training
-    └── requirements.txt       # Training dependencies
-```
+**How it works**: The AI watches the video frame by frame, looking for unnatural face movements or audio that doesn't sync with the mouth.
 
 ---
 
-## �️ Installation & Setup
+### � Check Audio
+Upload an audio file to detect voice cloning:
+- Is this a real human voice or AI-generated?
+- Are there signs of audio editing or splicing?
+- Does the voice have natural breathing and pauses?
 
-### Prerequisites
-- Python 3.10+
-- Node.js (optional, for development)
-- Google AI Studio API Key
-- Groq API Key (for AI analysis)
-
-### Backend Setup
-
-```bash
-# Navigate to backend
-cd backend
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Create .env file
-echo "GROQ_API_KEY=your_key_here" > .env
-echo "GOOGLE_API_KEY=your_key_here" >> .env
-
-# Run server
-python app.py
-```
-
-### Frontend
-Simply open `index.html` in your browser, or serve with:
-```bash
-python -m http.server 8000
-```
+**How it works**: Real voices have tiny imperfections - breaths, pauses, background noise. Fake voices are often "too perfect" or have robotic patterns.
 
 ---
 
-## 🧠 Model Training
+### � Check Text
+Paste any text to detect AI writing:
+- Was this written by a human or ChatGPT/AI?
+- Are there patterns typical of AI-generated text?
+- Is the content logically consistent?
 
-Veritas includes a custom deepfake detection model trained on the [Deepfake-vs-Real-60K](https://huggingface.co/datasets/prithivMLmods/Deepfake-vs-Real-60K) dataset.
-
-### Option 1: Google Colab (Recommended)
-1. Open [Google Colab](https://colab.research.google.com)
-2. Upload `training/train_colab.py`
-3. Enable GPU: Runtime → Change runtime type → GPU
-4. Run the notebook
-5. Model saves to your Google Drive
-
-### Option 2: Local Training
-```bash
-cd training
-pip install -r requirements.txt
-python train_deepfake.py
-```
-
-**Note**: Local training requires a GPU for reasonable performance. CPU training will be very slow.
+**How it works**: AI-written text often has repetitive patterns, overuses certain phrases, and lacks the natural variation of human writing.
 
 ---
 
-## 🔧 API Endpoints
+## How the Trust Score Works
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/verify/text` | POST | Analyze text for AI generation |
-| `/api/verify/image` | POST | Analyze image for manipulation |
-| `/api/verify/audio` | POST | Analyze audio for voice cloning |
-| `/api/verify/video` | POST | Analyze video for deepfakes |
-| `/api/learn` | POST | Submit feedback for AI learning |
-| `/api/health` | GET | Health check |
+After analysis, you get a **Trust Score** from 0-100%:
 
----
+| Score | Meaning |
+|-------|---------|
+| 80-100% | **Authentic** - Very likely real |
+| 50-79% | **Suspicious** - Some warning signs found |
+| 0-49% | **Fake/Generated** - Likely AI-made or manipulated |
 
-## ⚠️ Disclaimer
-
-Veritas uses AI-based probabilistic analysis. It may produce false positives or negatives. **Do not** use as the sole basis for legal or critical decisions. Always corroborate findings with traditional forensic tools and human judgment.
+The system also shows you exactly WHY it made its decision - like "Face pixels don't match" or "Unnatural word patterns detected".
 
 ---
 
-## 📄 License
+## Web Search Feature
 
-MIT License - See [LICENSE](LICENSE) for details.
+When you enable **Web Search Provenance**, Veritas also:
+- Searches the internet to see if this image appeared before
+- Checks if this content was already flagged as fake
+- Finds the original source if it was copied from somewhere
 
 ---
 
-*Built with Flask, Gemini AI, and HuggingFace Transformers*
+## The AI Learning System
+
+Veritas gets smarter over time. When it makes a mistake, you can tell it:
+- "This was actually real" or "This was actually fake"
+- The AI remembers these corrections
+- Next time it sees similar content, it does better
+
+---
+
+## Important: Veritas is a Tool, Not a Judge
+
+⚠️ **Please Remember:**
+- Veritas uses AI predictions - it can be wrong sometimes
+- Always double-check important findings with other sources
+- Don't use this as the only evidence for serious decisions
+- It's a helpful first step, not the final answer
+
+---
+
+## Who Should Use Veritas?
+
+- **Journalists** - Verify images and videos before publishing
+- **Researchers** - Study patterns in fake content
+- **Regular People** - Check suspicious posts on social media
+- **Organizations** - Screen content for authenticity
+
+---
+
+*Made with Google Gemini AI and custom-trained deepfake detection models*
