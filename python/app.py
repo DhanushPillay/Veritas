@@ -11,8 +11,12 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from groq import Groq
 
-# Import learning database
+# Import learning database and fact-check service
 import learning_db
+from factcheck_service import FactCheckService, search_news_for_claim
+
+# Initialize fact-check service
+factcheck = FactCheckService()
 
 app = Flask(__name__)
 CORS(app)
@@ -149,22 +153,41 @@ def delete_pattern(pattern_id):
 
 @app.route('/api/verify/text', methods=['POST'])
 def verify_text():
-    """Analyze text for authenticity"""
+    """Analyze text for authenticity with fact-check cross-reference"""
     try:
         data = request.json
         text = data.get('text', '')
+        use_factcheck = data.get('useSearch', False)
         
         if not text:
             return jsonify({"error": "No text provided"}), 400
         
+        # Step 1: Search fact-check databases (if enabled)
+        factcheck_results = []
+        factcheck_boost = {"modifier": 0, "summary": ""}
+        news_results = []
+        
+        if use_factcheck:
+            factcheck_results = factcheck.search_claims(text[:200])
+            factcheck_boost = factcheck.get_credibility_boost(factcheck_results)
+            news_results = search_news_for_claim(text[:100])
+        
+        # Step 2: Build enhanced prompt with fact-check context
         groq = get_client()
         system_prompt = build_prompt_with_patterns('text')
+        
+        user_content = f"Fact-check this text:\n\n{text}"
+        
+        if factcheck_results:
+            user_content += f"\n\n### FACT-CHECK DATABASE RESULTS:\n"
+            for fc in factcheck_results[:3]:
+                user_content += f"- Claim: '{fc['claim'][:100]}' rated '{fc['rating']}' by {fc['publisher']}\n"
         
         completion = groq.chat.completions.create(
             model="meta-llama/llama-4-scout-17b-16e-instruct",
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"Fact-check this text:\n\n{text}"}
+                {"role": "user", "content": user_content}
             ],
             temperature=1,
             max_tokens=1024
@@ -176,6 +199,19 @@ def verify_text():
         
         if start != -1 and end > start:
             result = json.loads(response_text[start:end])
+            
+            # Add fact-check sources to result
+            if factcheck_results:
+                result['sources'] = result.get('sources', [])
+                result['sources'].extend([{
+                    'title': f"{fc['publisher']}: {fc['rating']}",
+                    'uri': fc['url']
+                } for fc in factcheck_results])
+                result['factCheckSummary'] = factcheck_boost['summary']
+            
+            if news_results:
+                result['relatedNews'] = news_results
+            
             return jsonify(result)
         
         return jsonify({"error": "Invalid AI response"}), 500
