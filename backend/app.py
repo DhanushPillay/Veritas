@@ -11,7 +11,7 @@ from flask_cors import CORS
 from groq import Groq
 
 from config import Config
-from learning.database import (
+from learning.supabase_db import (
     load_patterns, get_patterns_by_type, add_pattern, 
     format_patterns_for_prompt, get_stats, delete_pattern
 )
@@ -23,6 +23,9 @@ from forensics.reverse_search import search_image
 Config.validate()
 app = Flask(__name__)
 CORS(app)
+
+# Configure max upload size to 2GB
+app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024 * 1024
 
 # Groq client
 client = None
@@ -72,12 +75,17 @@ factcheck = FactCheckService()
 
 
 def build_prompt_with_patterns(media_type):
+    """Build AI prompt with learned patterns, return prompt and pattern info"""
     base = PROMPTS.get(media_type, PROMPTS['text'])
     patterns = get_patterns_by_type(media_type, limit=5)
     pattern_text = format_patterns_for_prompt(patterns)
+    
+    # Return tuple: (prompt, patterns_used)
+    patterns_info = [{"pattern": p.get("pattern", ""), "verdict": p.get("verdict", "")} for p in patterns]
+    
     if pattern_text:
-        return f"{base}\n\n{pattern_text}\n{RESPONSE_FORMAT}"
-    return f"{base}{RESPONSE_FORMAT}"
+        return f"{base}\n\n{pattern_text}\n{RESPONSE_FORMAT}", patterns_info
+    return f"{base}{RESPONSE_FORMAT}", patterns_info
 
 
 # ========== HEALTH ==========
@@ -141,7 +149,7 @@ def verify_text():
             return jsonify({"error": "No text provided"}), 400
         
         groq = get_client()
-        system_prompt = build_prompt_with_patterns('text')
+        system_prompt, patterns_used = build_prompt_with_patterns('text')
         
         def run_ai(prompt):
             completion = groq.chat.completions.create(
@@ -188,6 +196,8 @@ def verify_text():
             if news_results:
                 result['relatedNews'] = news_results
             result['processingTime'] = f"{time.time() - start_time:.2f}s"
+            result['learnedPatternsUsed'] = len(patterns_used)
+            result['patternsApplied'] = patterns_used
             return jsonify(result)
         
         return jsonify({"error": "Invalid response"}), 500
@@ -199,6 +209,7 @@ def verify_text():
 
 @app.route('/api/verify/image', methods=['POST'])
 def verify_image():
+    """Analyze image with forensics-informed AI analysis"""
     from concurrent.futures import ThreadPoolExecutor, as_completed
     import time
     
@@ -212,65 +223,121 @@ def verify_image():
         filename = file.filename
         
         groq = get_client()
-        system_prompt = build_prompt_with_patterns('image')
         
-        def run_ai():
-            c = groq.chat.completions.create(
-                model=Config.TEXT_MODEL,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": f"Analyze: {filename}, Size: {len(content)} bytes"}
-                ],
-                temperature=1, max_tokens=1024
-            )
-            return c.choices[0].message.content
+        # Step 1: Run forensics FIRST to get actual evidence
+        with ThreadPoolExecutor(max_workers=2) as ex:
+            forensics_future = ex.submit(analyze_image_bytes, content, filename)
+            reverse_future = ex.submit(search_image, content)
+            
+            forensics = forensics_future.result()
+            reverse = reverse_future.result()
         
-        with ThreadPoolExecutor(max_workers=3) as ex:
-            futures = {
-                ex.submit(run_ai): "ai",
-                ex.submit(analyze_image_bytes, content, filename): "forensics",
-                ex.submit(search_image, content): "reverse"
-            }
-            ai_response = ""
-            forensics = {}
-            reverse = {}
-            for f in as_completed(futures):
-                name = futures[f]
-                try:
-                    if name == "ai": ai_response = f.result()
-                    elif name == "forensics": forensics = f.result()
-                    elif name == "reverse": reverse = f.result()
-                except Exception as e:
-                    print(f"{name} failed: {e}")
+        # Step 2: Build AI prompt with forensic evidence
+        ela = forensics.get("ela", {})
+        metadata = forensics.get("metadata", {})
+        indicators = forensics.get("manipulation_indicators", [])
+        risk_score = forensics.get("risk_score", 0)
         
+        forensic_evidence = f"""
+FORENSIC ANALYSIS RESULTS:
+- ELA Max Error: {ela.get('max_error', 0)}% (>30% suggests manipulation)
+- ELA Suspicious Regions: {ela.get('suspicious_regions', 0)}%
+- Has EXIF Metadata: {metadata.get('has_metadata', False)}
+- Camera: {metadata.get('camera', {}).get('Model', 'Unknown')}
+- Software Used: {metadata.get('software', 'None detected')}
+- Manipulation Risk Score: {risk_score}%
+
+DETECTED INDICATORS:
+{chr(10).join([f"- [{i['severity'].upper()}] {i['description']}" for i in indicators]) or '- None detected'}
+
+Based on this forensic evidence, determine if the image is AI-generated or manipulated.
+"""
+        
+        system_prompt, patterns_used = build_prompt_with_patterns('image')
+        
+        # Step 3: Now ask AI to analyze with forensic context
+        completion = groq.chat.completions.create(
+            model=Config.TEXT_MODEL,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Analyze image '{filename}':\n{forensic_evidence}"}
+            ],
+            temperature=0.7, max_tokens=1024
+        )
+        
+        ai_response = completion.choices[0].message.content
         start = ai_response.find('{')
         end = ai_response.rfind('}') + 1
         
         if start != -1 and end > start:
             result = json.loads(ai_response[start:end])
             
+            # ===== LEARNING BOOST: Adjust confidence based on learned patterns =====
+            if patterns_used:
+                original_confidence = result.get('confidence', 50)
+                original_verdict = result.get('verdict', '')
+                
+                # Check if any learned patterns match this verdict
+                matching_patterns = [p for p in patterns_used if p['verdict'] == original_verdict]
+                
+                if matching_patterns:
+                    # Boost confidence when learned patterns support the verdict
+                    boost = min(15, len(matching_patterns) * 5)  # +5 per pattern, max +15
+                    new_confidence = min(95, original_confidence + boost)
+                    result['confidence'] = new_confidence
+                    result['learningBoost'] = f"+{boost}% from {len(matching_patterns)} learned patterns"
+                
+                # If no metadata (AI image indicator) and we have patterns saying "Fake"
+                if not metadata.get('has_metadata'):
+                    fake_patterns = [p for p in patterns_used if 'Fake' in p['verdict']]
+                    if fake_patterns:
+                        # Change verdict to Fake/Generated if AI said Inconclusive
+                        if original_verdict == 'Inconclusive':
+                            result['verdict'] = 'Fake/Generated'
+                            result['confidence'] = max(70, result.get('confidence', 50))
+                            result['learningAdjustment'] = 'Verdict changed from Inconclusive based on learned patterns'
+            
+            # Add forensics data
             if forensics and not forensics.get("error"):
                 result["forensics"] = forensics
                 result["technicalDetails"] = result.get("technicalDetails", [])
-                ela = forensics.get("ela", {})
+                
                 if ela.get("performed"):
                     result["technicalDetails"].append({
                         "label": "ELA Analysis",
-                        "value": f"Max error: {ela.get('max_error', 0)}%",
+                        "value": f"Max error: {ela.get('max_error', 0)}%, Suspicious: {ela.get('suspicious_regions', 0)}%",
                         "status": "fail" if ela.get('max_error', 0) > 30 else "pass",
-                        "explanation": "Detects edited regions"
+                        "explanation": "Error Level Analysis detects editing artifacts"
+                    })
+                
+                if metadata.get("has_metadata"):
+                    result["technicalDetails"].append({
+                        "label": "EXIF Metadata",
+                        "value": f"Camera: {metadata.get('camera', {}).get('Model', 'Unknown')}",
+                        "status": "pass",
+                        "explanation": "Original camera metadata preserved"
+                    })
+                else:
+                    result["technicalDetails"].append({
+                        "label": "EXIF Metadata", 
+                        "value": "Missing - likely screenshot or AI-generated",
+                        "status": "warn",
+                        "explanation": "Real photos usually have camera metadata"
                     })
             
+            # Add reverse search
             if reverse:
                 result["reverseSearch"] = reverse.get("analysis", {})
                 result["reverseSearch"]["matches"] = reverse.get("matches_found", 0)
                 result["reverseSearch"]["manual_urls"] = reverse.get("manual_search_urls", {})
             
-            result["riskScore"] = forensics.get("risk_score", 0)
+            result["riskScore"] = risk_score
             result["processingTime"] = f"{time.time() - start_time:.2f}s"
+            result["learnedPatternsUsed"] = len(patterns_used)
+            result["patternsApplied"] = patterns_used
             return jsonify(result)
         
-        return jsonify({"error": "Invalid response"}), 500
+        return jsonify({"error": "Invalid AI response"}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

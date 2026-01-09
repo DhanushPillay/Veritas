@@ -18,26 +18,311 @@
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <!-- Styles -->
   <link rel="stylesheet" href="frontend/css/styles.css">
 </head>
 
 <body>
-  <!-- App Container -->
-  <div id="app">
-    <!-- Loading State -->
-    <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center;">
-      <div class="spinner"></div>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar-content">
+      <div class="navbar-brand">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
+          <path d="m9 12 2 2 4-4" />
+        </svg>
+        <span>VERITAS</span>
+      </div>
+      <div class="status-badge">
+        <span class="dot"></span>
+        System Operational
+      </div>
     </div>
-  </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="main-container">
+    <div class="hero">
+      <h1>Verify Reality in Real-Time</h1>
+      <p>Advanced AI forensics to detect deepfakes, synthetic voices, and generated text with precision.</p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs" id="tabs">
+      <button class="tab-btn active" data-type="text">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          width="18" height="18">
+          <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+          <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+          <path d="M10 9H8" />
+          <path d="M16 13H8" />
+          <path d="M16 17H8" />
+        </svg>
+        <span>Text Verification</span>
+      </button>
+      <button class="tab-btn" data-type="image">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          width="18" height="18">
+          <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+          <circle cx="9" cy="9" r="2" />
+          <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+        </svg>
+        <span>Image Analysis</span>
+      </button>
+      <button class="tab-btn" data-type="audio">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          width="18" height="18">
+          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+          <line x1="12" x2="12" y1="19" y2="22" />
+        </svg>
+        <span>Voice/Audio</span>
+      </button>
+      <button class="tab-btn" data-type="video">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          width="18" height="18">
+          <path d="m22 8-6 4 6 4V8Z" />
+          <rect width="14" height="12" x="2" y="6" rx="2" ry="2" />
+        </svg>
+        <span>Video Forensics</span>
+      </button>
+    </div>
+
+    <!-- Input Card -->
+    <div class="input-card">
+      <!-- Text Input (default) -->
+      <div id="textInput" class="input-section">
+        <label class="input-label">Content to Analyze</label>
+        <textarea class="text-input" id="textArea"
+          placeholder="Paste article text, social media post, or statement here..."></textarea>
+      </div>
+
+      <!-- File Input (hidden by default) -->
+      <div id="fileInput" class="input-section hidden">
+        <label class="input-label">Upload Media Evidence</label>
+        <div class="upload-area" id="uploadArea">
+          <input type="file" id="fileSelector" accept="image/*">
+          <div class="upload-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" width="24" height="24">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" x2="12" y1="3" y2="15" />
+            </svg>
+          </div>
+          <p class="upload-text" id="uploadText">Drop your file here</p>
+          <p class="upload-hint">or click to browse or paste (Ctrl+V)</p>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="controls-row">
+        <div class="toggle-wrapper" id="searchToggle">
+          <div class="toggle" id="toggleSwitch">
+            <div class="toggle-knob"></div>
+          </div>
+          <span class="toggle-label">Web Search Provenance</span>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <p class="privacy-note">*Veritas processes data privately. Max 2GB.</p>
+          <button class="btn-analyze" id="analyzeBtn" disabled>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" width="20" height="20">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+            Run Analysis
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- History Section -->
+    <div class="history-section" id="historySection" style="display: none;">
+      <div class="history-header">
+        <h3 class="history-title">Recent Analysis</h3>
+        <button class="btn-clear-history" id="clearHistoryBtn">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            width="12" height="12">
+            <path d="M3 6h18" />
+            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+          </svg>
+          Clear History
+        </button>
+      </div>
+      <div class="history-grid" id="historyGrid"></div>
+    </div>
+  </main>
 
   <!-- Scripts -->
   <script src="frontend/js/icons.js"></script>
-  <script src="frontend/js/gemini-service.js"></script>
-  <script src="frontend/js/result-view.js"></script>
-  <script src="frontend/js/app.js"></script>
+  <script src="frontend/js/shared.js"></script>
+  <script>
+    // ========== INDEX PAGE LOGIC ==========
+    const IndexPage = {
+      activeTab: 'text',
+      selectedFile: null,
+      useSearch: false,
+
+      init() {
+        this.bindEvents();
+        this.renderHistory();
+      },
+
+      bindEvents() {
+        // Tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+          btn.addEventListener('click', () => this.switchTab(btn.dataset.type));
+        });
+
+        // Text input
+        document.getElementById('textArea').addEventListener('input', () => this.updateButtonState());
+
+        // File input
+        document.getElementById('fileSelector').addEventListener('change', (e) => {
+          if (e.target.files[0]) {
+            this.selectedFile = e.target.files[0];
+            document.getElementById('uploadText').textContent = this.selectedFile.name;
+            this.updateButtonState();
+          }
+        });
+
+        // Toggle search
+        document.getElementById('searchToggle').addEventListener('click', () => {
+          this.useSearch = !this.useSearch;
+          document.getElementById('toggleSwitch').classList.toggle('active', this.useSearch);
+        });
+
+        // Analyze button
+        document.getElementById('analyzeBtn').addEventListener('click', () => this.startAnalysis());
+
+        // Clear history
+        document.getElementById('clearHistoryBtn').addEventListener('click', () => {
+          if (confirm('Clear all history?')) {
+            Veritas.clearHistory();
+            this.renderHistory();
+          }
+        });
+
+        // Paste handler
+        window.addEventListener('paste', (e) => {
+          if (this.activeTab === 'text') return;
+          if (e.clipboardData && e.clipboardData.files.length > 0) {
+            const file = e.clipboardData.files[0];
+            const validTypes = {
+              image: file.type.startsWith('image/'),
+              video: file.type.startsWith('video/'),
+              audio: file.type.startsWith('audio/')
+            };
+            if (validTypes[this.activeTab]) {
+              e.preventDefault();
+              this.selectedFile = file;
+              document.getElementById('uploadText').textContent = file.name;
+              this.updateButtonState();
+            }
+          }
+        });
+      },
+
+      switchTab(type) {
+        this.activeTab = type;
+        this.selectedFile = null;
+
+        // Update tab buttons
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.type === type);
+        });
+
+        // Toggle input sections
+        const isText = type === 'text';
+        document.getElementById('textInput').classList.toggle('hidden', !isText);
+        document.getElementById('fileInput').classList.toggle('hidden', isText);
+
+        // Update file accept types
+        const acceptTypes = { image: 'image/*', video: 'video/*', audio: 'audio/*' };
+        document.getElementById('fileSelector').accept = acceptTypes[type] || '*';
+        document.getElementById('uploadText').textContent = `Drop your ${type} file here`;
+
+        this.updateButtonState();
+      },
+
+      updateButtonState() {
+        const btn = document.getElementById('analyzeBtn');
+        let hasInput = false;
+
+        if (this.activeTab === 'text') {
+          hasInput = document.getElementById('textArea').value.trim().length > 0;
+        } else {
+          hasInput = this.selectedFile !== null;
+        }
+
+        btn.disabled = !hasInput;
+      },
+
+      async startAnalysis() {
+        const content = this.activeTab === 'text'
+          ? document.getElementById('textArea').value
+          : this.selectedFile;
+
+        // Save input to localStorage
+        await Veritas.saveInput(this.activeTab, content, this.useSearch);
+
+        // Redirect to scanning page
+        window.location.href = 'frontend/pages/scanning.html';
+      },
+
+      renderHistory() {
+        const history = Veritas.getHistory();
+        const section = document.getElementById('historySection');
+        const grid = document.getElementById('historyGrid');
+
+        if (history.length === 0) {
+          section.style.display = 'none';
+          return;
+        }
+
+        section.style.display = 'block';
+        grid.innerHTML = history.map(item => {
+          const verdictClass = item.result?.verdict === 'Authentic' ? 'authentic'
+            : (item.result?.verdict === 'Fake/Generated' || item.result?.verdict === 'Suspicious') ? 'suspicious'
+              : 'inconclusive';
+
+          return `
+            <div class="history-item" onclick="IndexPage.loadHistoryItem('${item.id}')">
+              <div class="history-thumb">
+                ${item.thumbnail
+              ? `<img src="${item.thumbnail}" alt="preview">`
+              : Icons.getMediaTypeIcon(item.type)}
+              </div>
+              <div class="history-content">
+                <div class="history-meta">
+                  <span class="history-date">${new Date(item.timestamp).toLocaleDateString()}</span>
+                  <span class="history-verdict ${verdictClass}">${item.result?.verdict || 'Unknown'}</span>
+                </div>
+                <p class="history-preview">${item.preview || 'No preview'}</p>
+              </div>
+            </div>
+          `;
+        }).join('');
+      },
+
+      loadHistoryItem(id) {
+        const history = Veritas.getHistory();
+        const item = history.find(h => h.id === id);
+        if (item) {
+          Veritas.saveResult(item.result, item.thumbnail);
+          window.location.href = 'frontend/pages/results.html';
+        }
+      }
+    };
+
+    // Initialize when DOM ready
+    document.addEventListener('DOMContentLoaded', () => IndexPage.init());
+  </script>
 </body>
 
 </html>

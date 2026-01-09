@@ -66,6 +66,18 @@ const ResultView = {
         </div>
       </div>`;
 
+    // Learning indicator - shows if AI used learned patterns
+    if (result.learnedPatternsUsed > 0) {
+      html += `
+        <div class="learning-badge">
+          <span class="learning-icon">🧠</span>
+          <span>AI used <strong>${result.learnedPatternsUsed} learned patterns</strong> in this analysis</span>
+          <div class="patterns-tooltip">
+            ${result.patternsApplied?.map(p => `<div class="pattern-item">• "${p.pattern}" → ${p.verdict}</div>`).join('') || ''}
+          </div>
+        </div>`;
+    }
+
     // Inconclusive Warning
     if (isInconclusive) {
       html += `

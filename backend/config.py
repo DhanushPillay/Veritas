@@ -24,9 +24,10 @@ class Config:
     PORT = 5000
     DEBUG = True
     
-    # AI Models
-    TEXT_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct'
-    AUDIO_MODEL = 'whisper-large-v3-turbo'
+    # AI Models - use different models for different tasks
+    TEXT_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct'  # Text reasoning
+    VISION_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct'  # Can see images
+    AUDIO_MODEL = 'whisper-large-v3-turbo'  # Speech-to-text
     
     @classmethod
     def validate(cls):
