@@ -17,12 +17,19 @@ interface ResultViewProps {
   onReset: () => void;
   mediaThumbnail?: string;
   mediaType?: MediaType;
+  onTeach: (rule: string) => void;
 }
 
-const ResultView: React.FC<ResultViewProps> = ({ result, onReset, mediaThumbnail, mediaType }) => {
-  const isAuthentic = result.verdict === 'Authentic';
-  const isSuspicious = result.verdict === 'Fake/Generated' || result.verdict === 'Suspicious';
-  const isInconclusive = result.verdict === 'Inconclusive';
+const ResultView: React.FC<ResultViewProps> = ({ result, onReset, mediaThumbnail, mediaType, onTeach }) => {
+  const [localVerdict, setLocalVerdict] = useState(result.verdict);
+  const isAuthentic = localVerdict === 'Authentic';
+  const isSuspicious = localVerdict === 'Fake/Generated' || localVerdict === 'Suspicious';
+  const isInconclusive = localVerdict === 'Inconclusive';
+
+  // Feedback State
+  const [isReporting, setIsReporting] = useState(false);
+  const [feedbackReason, setFeedbackReason] = useState('');
+  const [feedbackSuccess, setFeedbackSuccess] = useState(false);
 
   const [expandedDetails, setExpandedDetails] = useState<Set<number>>(() => {
     // Automatically expand all details if the verdict is suspicious/fake to show explanations immediately
@@ -61,8 +68,21 @@ const ResultView: React.FC<ResultViewProps> = ({ result, onReset, mediaThumbnail
     setExpandedDetails(newSet);
   };
 
+  const handleSubmitCorrection = () => {
+    if (!feedbackReason.trim()) return;
+    
+    // Construct a rule string
+    const rule = `User Correction Logic: If evidence appears similar to previous failure where "${feedbackReason}", the correct verdict is likely ${localVerdict}.`;
+    
+    onTeach(rule);
+    setFeedbackSuccess(true);
+    setTimeout(() => {
+      setIsReporting(false);
+    }, 2000);
+  };
+
   return (
-    <div className="w-full max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="w-full max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
       
       {/* Evidence Preview Banner */}
       {mediaThumbnail && mediaType !== 'text' && (
@@ -96,7 +116,7 @@ const ResultView: React.FC<ResultViewProps> = ({ result, onReset, mediaThumbnail
           </div>
           <div>
             <h2 className="text-sm font-medium text-slate-400 uppercase tracking-wider">Analysis Verdict</h2>
-            <h1 className={`text-3xl font-bold ${verdictColorClass}`}>{result.verdict}</h1>
+            <h1 className={`text-3xl font-bold ${verdictColorClass}`}>{localVerdict}</h1>
           </div>
         </div>
         
@@ -140,7 +160,7 @@ const ResultView: React.FC<ResultViewProps> = ({ result, onReset, mediaThumbnail
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
         {/* Main Findings */}
         <div className="md:col-span-2 space-y-6">
           <section className="bg-slate-800/50 rounded-xl p-6 border border-slate-700/50">
@@ -241,6 +261,81 @@ const ResultView: React.FC<ResultViewProps> = ({ result, onReset, mediaThumbnail
             Start New Analysis
           </button>
         </div>
+      </div>
+
+      {/* FEEDBACK & LEARNING MODULE */}
+      <div className="border-t border-slate-800 pt-8 mt-8">
+        {!isReporting && !feedbackSuccess && (
+          <div className="flex justify-center">
+            <button 
+              onClick={() => setIsReporting(true)}
+              className="text-xs text-slate-500 hover:text-slate-300 flex items-center gap-2 transition-colors px-4 py-2 rounded-lg hover:bg-slate-800"
+            >
+              <IconAlertTriangle className="w-3 h-3" />
+              Report Incorrect Verdict
+            </button>
+          </div>
+        )}
+
+        {isReporting && !feedbackSuccess && (
+          <div className="bg-slate-800/30 border border-veritas-500/30 rounded-xl p-6 animate-in fade-in slide-in-from-bottom-2 max-w-2xl mx-auto">
+            <h4 className="text-veritas-400 font-semibold mb-2 flex items-center gap-2">
+              <IconShieldCheck className="w-4 h-4" />
+              Teach Veritas System
+            </h4>
+            <p className="text-slate-400 text-sm mb-4">
+              Help the AI learn from its mistakes. If the verdict was wrong, select the correct one and explain <strong>what specific detail</strong> the system missed.
+            </p>
+            
+            <div className="flex gap-3 mb-4">
+              <button 
+                onClick={() => setLocalVerdict('Authentic')}
+                className={`flex-1 py-2 text-sm rounded-lg border transition-colors ${localVerdict === 'Authentic' ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' : 'border-slate-700 text-slate-400 hover:bg-slate-700'}`}
+              >
+                Actually Real
+              </button>
+              <button 
+                onClick={() => setLocalVerdict('Fake/Generated')}
+                className={`flex-1 py-2 text-sm rounded-lg border transition-colors ${localVerdict === 'Fake/Generated' ? 'bg-red-500/20 border-red-500 text-red-400' : 'border-slate-700 text-slate-400 hover:bg-slate-700'}`}
+              >
+                Actually Fake
+              </button>
+            </div>
+
+            <label className="block text-xs text-slate-500 mb-1">What revealed the truth? (This becomes a new forensic rule)</label>
+            <textarea 
+              value={feedbackReason}
+              onChange={(e) => setFeedbackReason(e.target.value)}
+              placeholder="e.g., 'The hands have 6 fingers', 'The shadows are going in two different directions', 'The audio lacks background noise'"
+              className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-200 focus:border-veritas-500 focus:outline-none h-24 mb-4 resize-none"
+            />
+            
+            <div className="flex gap-3 justify-end">
+              <button 
+                onClick={() => setIsReporting(false)}
+                className="px-4 py-2 text-sm text-slate-400 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleSubmitCorrection}
+                disabled={!feedbackReason.trim()}
+                className="px-4 py-2 bg-veritas-600 hover:bg-veritas-500 text-white text-sm rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Submit & Train
+              </button>
+            </div>
+          </div>
+        )}
+
+        {feedbackSuccess && (
+          <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4 text-center animate-in zoom-in duration-300 max-w-lg mx-auto">
+            <h4 className="text-emerald-400 font-semibold mb-1">System Updated</h4>
+            <p className="text-emerald-500/70 text-sm">
+              Thank you. This forensic rule has been ingested and will be applied to future analyses.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

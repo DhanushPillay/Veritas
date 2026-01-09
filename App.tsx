@@ -207,6 +207,16 @@ const App: React.FC = () => {
   const [currentThumbnail, setCurrentThumbnail] = useState<string | undefined>(undefined);
   const [analysisSteps, setAnalysisSteps] = useState<AnalysisStep[]>([]);
   
+  // Learning / Knowledge Base State
+  const [learningRules, setLearningRules] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('veritas_learning_rules');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
   // History State
   const [history, setHistory] = useState<HistoryItem[]>(() => {
     try {
@@ -222,6 +232,11 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('veritas_history', JSON.stringify(history));
   }, [history]);
+
+  // Persist learning rules
+  useEffect(() => {
+    localStorage.setItem('veritas_learning_rules', JSON.stringify(learningRules));
+  }, [learningRules]);
 
   useEffect(() => {
     const checkKey = async () => {
@@ -251,6 +266,31 @@ const App: React.FC = () => {
     return () => clearTimeout(timer);
   }, [cooldown]);
 
+  // Handle Clipboard Paste Events
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      // Only handle paste if we are in IDLE mode (input view) and not in text mode
+      if (status !== AnalysisStatus.IDLE || activeTab === 'text') return;
+
+      if (e.clipboardData && e.clipboardData.files.length > 0) {
+        const file = e.clipboardData.files[0];
+        let isValidType = false;
+
+        if (activeTab === 'image' && file.type.startsWith('image/')) isValidType = true;
+        if (activeTab === 'video' && file.type.startsWith('video/')) isValidType = true;
+        if (activeTab === 'audio' && file.type.startsWith('audio/')) isValidType = true;
+
+        if (isValidType) {
+          e.preventDefault();
+          setSelectedFile(file);
+        }
+      }
+    };
+
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [activeTab, status]);
+
   const handleConnectKey = async () => {
     if (window.aistudio) {
       await window.aistudio.openSelectKey();
@@ -266,6 +306,11 @@ const App: React.FC = () => {
     if (e.target.files && e.target.files[0]) {
       setSelectedFile(e.target.files[0]);
     }
+  };
+
+  // Callback to add a new learning rule
+  const handleTeachSystem = (rule: string) => {
+    setLearningRules(prev => [...prev, rule]);
   };
 
   const getAnalysisStepsList = (type: MediaType, search: boolean): string[] => {
@@ -337,6 +382,10 @@ const App: React.FC = () => {
       steps.push('Skipping external search (Local Analysis)...');
     }
     
+    if (learningRules.length > 0) {
+      steps.push('Applying user-taught forensic protocols...');
+    }
+
     steps.push('Compiling final forensic verdict...');
     return steps;
   };
@@ -384,7 +433,8 @@ const App: React.FC = () => {
       }
       setCurrentThumbnail(thumb);
 
-      const data = await verifyMedia(activeTab, content, useSearch);
+      // Pass user learned rules to the service
+      const data = await verifyMedia(activeTab, content, useSearch, learningRules);
       
       // Save to History
       const newItem: HistoryItem = {
@@ -569,7 +619,7 @@ const App: React.FC = () => {
                           <p className="text-lg font-medium text-slate-200">
                             {selectedFile ? selectedFile.name : `Drop your ${activeTab} file here`}
                           </p>
-                          <p className="text-sm text-slate-500 mt-1">or click to browse</p>
+                          <p className="text-sm text-slate-500 mt-1">or click to browse or paste (Ctrl+V)</p>
                         </div>
                       </div>
                     </div>
@@ -715,7 +765,8 @@ const App: React.FC = () => {
             result={result} 
             onReset={resetAnalysis} 
             mediaThumbnail={currentThumbnail} 
-            mediaType={activeTab} 
+            mediaType={activeTab}
+            onTeach={handleTeachSystem}
           />
         )}
 

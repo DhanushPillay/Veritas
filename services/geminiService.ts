@@ -61,14 +61,14 @@ const RESPONSE_SCHEMA = {
 export const verifyMedia = async (
   type: MediaType,
   content: string | File,
-  useSearch: boolean = false
+  useSearch: boolean = false,
+  userGuidelines: string[] = []
 ): Promise<VerificationResult> => {
   // Initialize AI client inside the function to use the most current API_KEY from environment
   const apiKey = process.env.API_KEY || '';
   const ai = new GoogleGenAI({ apiKey });
 
   // Use gemini-2.0-flash for reliable multimodal and tool use. 
-  // 'gemini-2.5-flash-latest' was causing 404s as it is not a valid public model alias yet.
   const model = 'gemini-2.0-flash';
   
   let systemInstruction = `You are Veritas, a world-class media forensics and fact-checking AI. 
@@ -80,6 +80,16 @@ export const verifyMedia = async (
   For the technicalDetails section:
   - Generate specific technical checks relevant to the media type.
   - For the 'explanation' field: Provide a detailed insight. Explain what the metric checks (e.g., "Error Level Analysis detects compression inconsistencies") AND what the specific finding implies for this media (e.g., "Uniform compression suggests authenticity").`;
+
+  // Inject Self-Learning Rules from User Feedback
+  if (userGuidelines.length > 0) {
+    systemInstruction += `\n\n### CRITICAL FIELD PROTOCOLS (USER LEARNED RULES)
+    The user has explicitly trained you to watch for the following specific indicators based on past failures. 
+    You MUST prioritize checking these elements in your analysis:
+    ${userGuidelines.map((rule, index) => `${index + 1}. ${rule}`).join('\n')}
+    
+    If any of these specific indicators are present, heavily weight your verdict accordingly.`;
+  }
 
   if (useSearch) {
     systemInstruction += ` You have access to Google Search. 
