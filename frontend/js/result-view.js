@@ -94,6 +94,8 @@ const ResultView = {
             ${result.reasoning.map(r => `<li>${r}</li>`).join('')}
           </ul>
         </section>
+        ${this.renderRiskScore(result)}
+        ${this.renderReverseSearch(result)}
       </div>`;
 
     // Right Column - Technical Details
@@ -135,6 +137,65 @@ const ResultView = {
     html += '</div>'; // End results-container
 
     return html;
+  },
+
+  // Render risk score bar (for images)
+  renderRiskScore(result) {
+    const risk = result.riskScore;
+    if (risk === undefined) return '';
+
+    const level = risk > 70 ? 'high' : risk > 40 ? 'medium' : 'low';
+    const label = risk > 70 ? 'HIGH RISK' : risk > 40 ? 'MODERATE' : 'LOW RISK';
+    const color = risk > 70 ? '#ef4444' : risk > 40 ? '#f59e0b' : '#10b981';
+
+    return `
+      <section class="section-card" style="margin-top: 1.5rem;">
+        <h3 class="section-title">Misinformation Risk Score</h3>
+        <div class="risk-container">
+          <div class="risk-bar-bg">
+            <div class="risk-bar-fill" style="width: ${risk}%; background: ${color}"></div>
+          </div>
+          <div class="risk-info">
+            <span class="risk-value" style="color: ${color}">${risk}%</span>
+            <span class="risk-label ${level}">${label}</span>
+          </div>
+        </div>
+        ${result.forensics ? `
+          <div class="risk-details">
+            ${result.forensics.manipulation_indicators?.map(i =>
+      `<div class="indicator ${i.severity}">• ${i.description}</div>`
+    ).join('') || ''}
+          </div>
+        ` : ''}
+      </section>`;
+  },
+
+  // Render reverse image search results
+  renderReverseSearch(result) {
+    const reverse = result.reverseSearch;
+    if (!reverse) return '';
+
+    return `
+      <section class="section-card" style="margin-top: 1.5rem;">
+        <h3 class="section-title">Reverse Image Search</h3>
+        <div class="reverse-search-info">
+          <div class="matches-count">
+            <span class="count">${reverse.matches || 0}</span>
+            <span class="label">matches found online</span>
+          </div>
+          ${reverse.originality_score ? `
+            <div class="originality">
+              Originality: <strong>${reverse.originality_score}%</strong>
+            </div>
+          ` : ''}
+        </div>
+        <div class="search-links">
+          <span class="search-label">Search manually:</span>
+          ${reverse.manual_urls ? Object.entries(reverse.manual_urls).map(([name, url]) =>
+      `<a href="${url}" target="_blank" class="search-link">${name}</a>`
+    ).join(' ') : ''}
+        </div>
+      </section>`;
   },
 
   // Render technical details with expandable sections

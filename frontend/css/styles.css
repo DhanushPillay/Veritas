@@ -1606,3 +1606,139 @@ a:hover {
         margin: 0 auto;
     }
 }
+
+/* --- Risk Score Bar --- */
+.risk-container {
+    margin-bottom: 1rem;
+}
+
+.risk-bar-bg {
+    height: 0.75rem;
+    background: var(--slate-800);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+}
+
+.risk-bar-fill {
+    height: 100%;
+    border-radius: var(--radius-full);
+    transition: width 0.5s ease-out;
+}
+
+.risk-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.risk-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.risk-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-full);
+    text-transform: uppercase;
+}
+
+.risk-label.low {
+    background: rgba(16, 185, 129, 0.2);
+    color: var(--emerald-400);
+}
+
+.risk-label.medium {
+    background: rgba(245, 158, 11, 0.2);
+    color: var(--amber-400);
+}
+
+.risk-label.high {
+    background: rgba(239, 68, 68, 0.2);
+    color: var(--red-400);
+}
+
+.risk-details {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--slate-700);
+}
+
+.risk-details .indicator {
+    font-size: 0.8rem;
+    margin-bottom: 0.5rem;
+    padding-left: 0.5rem;
+}
+
+.indicator.high {
+    color: var(--red-400);
+}
+
+.indicator.medium {
+    color: var(--amber-400);
+}
+
+.indicator.low {
+    color: var(--slate-400);
+}
+
+.indicator.info {
+    color: var(--slate-500);
+}
+
+/* --- Reverse Image Search --- */
+.reverse-search-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.matches-count .count {
+    font-size: 2rem;
+    font-weight: 700;
+    color: white;
+    margin-right: 0.5rem;
+}
+
+.matches-count .label {
+    font-size: 0.875rem;
+    color: var(--slate-400);
+}
+
+.originality {
+    font-size: 0.875rem;
+    color: var(--slate-300);
+}
+
+.originality strong {
+    color: var(--veritas-400);
+}
+
+.search-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.search-label {
+    font-size: 0.75rem;
+    color: var(--slate-500);
+}
+
+.search-link {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    background: var(--slate-800);
+    border-radius: var(--radius-md);
+    color: var(--veritas-400);
+    text-decoration: none;
+    transition: background 0.2s;
+}
+
+.search-link:hover {
+    background: var(--slate-700);
+}
