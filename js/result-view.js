@@ -182,24 +182,74 @@ const ResultView = {
   // Show feedback form
   showFeedbackForm() {
     const section = document.getElementById('feedbackSection');
+
+    // Common patterns by media type
+    const patterns = {
+      image: [
+        'Hands have wrong number of fingers',
+        'Unnatural face/eyes',
+        'Inconsistent lighting/shadows',
+        'Blurry or distorted background',
+        'Text is garbled/unreadable',
+        'Clothing/accessories look wrong'
+      ],
+      video: [
+        'Lip sync is off',
+        'Face flickers or morphs',
+        'Unnatural blinking',
+        'Audio doesn\'t match video',
+        'Edges around face are blurry',
+        'Lighting changes unnaturally'
+      ],
+      audio: [
+        'Unnatural pauses/rhythm',
+        'Voice sounds robotic',
+        'Background noise is inconsistent',
+        'Breathing sounds wrong',
+        'Emotional tone is flat'
+      ],
+      text: [
+        'Contains false claims',
+        'Logical inconsistencies',
+        'Writing style is unnatural',
+        'Factual errors',
+        'Appears AI-generated'
+      ]
+    };
+
+    const typePatterns = patterns[this.mediaType] || patterns.text;
+
     section.innerHTML = `
       <div class="feedback-form">
         <h4>${Icons.shieldCheck()} Teach Veritas System</h4>
-        <p>Help the AI learn. Select the correct verdict and explain what detail was missed.</p>
+        <p>Select the correct verdict:</p>
         <div class="verdict-buttons">
           <button class="verdict-btn ${this.localVerdict === 'Authentic' ? 'selected-real' : ''}" 
                   onclick="ResultView.setVerdict('Authentic')">Actually Real</button>
           <button class="verdict-btn ${this.localVerdict === 'Fake/Generated' ? 'selected-fake' : ''}" 
                   onclick="ResultView.setVerdict('Fake/Generated')">Actually Fake</button>
         </div>
-        <label class="feedback-label">What revealed the truth?</label>
-        <textarea class="feedback-textarea" id="feedbackReason" 
-                  placeholder="e.g., 'The hands have 6 fingers', 'Shadows are inconsistent'"></textarea>
+        <label class="feedback-label">What did you notice? (optional)</label>
+        <div class="pattern-chips" id="patternChips">
+          ${typePatterns.map(p => `<button class="pattern-chip" onclick="ResultView.selectPattern('${p}')">${p}</button>`).join('')}
+        </div>
+        <input type="hidden" id="feedbackReason" value="">
+        <div class="selected-pattern" id="selectedPattern" style="display:none;">
+          Selected: <span id="selectedPatternText"></span>
+        </div>
         <div class="feedback-actions">
           <button class="btn-cancel" onclick="ResultView.cancelFeedback()">Cancel</button>
-          <button class="btn-submit" id="submitFeedback" onclick="ResultView.submitFeedback()">Submit & Train</button>
+          <button class="btn-submit" onclick="ResultView.submitFeedback()">Submit</button>
         </div>
       </div>`;
+  },
+
+  selectPattern(pattern) {
+    document.getElementById('feedbackReason').value = pattern;
+    document.querySelectorAll('.pattern-chip').forEach(c => c.classList.remove('selected'));
+    event.target.classList.add('selected');
+    document.getElementById('selectedPattern').style.display = 'block';
+    document.getElementById('selectedPatternText').textContent = pattern;
   },
 
   setVerdict(verdict) {
@@ -220,7 +270,9 @@ const ResultView = {
 
   async submitFeedback() {
     const reason = document.getElementById('feedbackReason').value.trim();
-    if (!reason) return;
+
+    // Use generic pattern if none selected
+    const pattern = reason || `Verdict corrected to ${this.localVerdict}`;
 
     // Send to backend for persistent learning
     try {
@@ -229,9 +281,9 @@ const ResultView = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: this.mediaType || 'text',
-          pattern: reason,
+          pattern: pattern,
           verdict: this.localVerdict,
-          confidence: 90,
+          confidence: reason ? 90 : 70,  // Lower confidence if no specific pattern
           originalVerdict: this.currentResult?.verdict,
           example: this.currentResult?.summary?.substring(0, 200)
         })
@@ -239,23 +291,23 @@ const ResultView = {
 
       if (response.ok) {
         document.getElementById('feedbackSection').innerHTML = `
-                    <div class="feedback-success">
-                        <h4>Pattern Learned!</h4>
-                        <p>This pattern has been saved and will be used in future analyses.</p>
-                    </div>`;
+          <div class="feedback-success">
+            <h4>Thanks for the feedback!</h4>
+            <p>${reason ? 'Pattern learned and saved.' : 'Verdict correction recorded.'}</p>
+          </div>`;
       } else {
-        throw new Error('Failed to save pattern');
+        throw new Error('Failed to save');
       }
     } catch (e) {
-      // Fallback to local storage if backend unavailable
-      const rule = `User Correction: If evidence appears similar where "${reason}", the correct verdict is likely ${this.localVerdict}.`;
-      App.addLearningRule(rule);
-
+      // Fallback to local storage
+      if (reason) {
+        App.addLearningRule(`If "${reason}", verdict is likely ${this.localVerdict}.`);
+      }
       document.getElementById('feedbackSection').innerHTML = `
-                <div class="feedback-success">
-                    <h4>System Updated</h4>
-                    <p>Pattern saved locally for this session.</p>
-                </div>`;
+        <div class="feedback-success">
+          <h4>Feedback Saved</h4>
+          <p>Your correction has been noted.</p>
+        </div>`;
     }
   }
 };

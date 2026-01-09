@@ -1,7 +1,20 @@
 {
-  "patterns": [],
+  "patterns": [
+    {
+      "id": "4f0feb7f-aa42-440c-a107-3b1cc5033c24",
+      "type": "image",
+      "pattern": "Verdict corrected to Authentic",
+      "verdict": "Authentic",
+      "confidence": 70,
+      "original_verdict": "Inconclusive",
+      "example": "The image appears to be a genuine photograph of a crop protection product, but some inconsistencies were detected.",
+      "created": "2026-01-09T15:27:53.616508",
+      "usage_count": 0,
+      "effectiveness": null
+    }
+  ],
   "stats": {
-    "total_learned": 0,
-    "last_updated": "2026-01-09T15:20:53.611918"
+    "total_learned": 1,
+    "last_updated": "2026-01-09T15:27:53.616535"
   }
 }
