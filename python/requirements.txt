@@ -1,0 +1,6 @@
+# VERITAS Python Requirements
+# Install with: pip install -r requirements.txt
+
+groq>=0.4.0
+flask>=3.0.0
+flask-cors>=4.0.0
