@@ -1766,3 +1766,67 @@ body {
 .toggle.active+.toggle-label {
     color: var(--text-primary);
 }
+/* ============================================
+   WATERMARK DETECTION BADGES
+   ============================================ */
+
+.watermarks-section {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(245, 158, 11, 0.1));
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.watermark-intro {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+}
+
+.watermark-badges {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.watermark-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    border: 1px solid var(--border-light);
+}
+
+.watermark-badge.c2pa {
+    border-left: 3px solid #f59e0b;
+}
+
+.watermark-badge.synthid {
+    border-left: 3px solid #0ea5e9;
+}
+
+.watermark-badge.visual {
+    border-left: 3px solid #ef4444;
+}
+
+.watermark-icon {
+    font-size: 1.5rem;
+}
+
+.watermark-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+
+.watermark-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.watermark-source {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: capitalize;
+}

@@ -2,77 +2,77 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analysis Results | VERITAS</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analysis Results | VERITAS</title>
 
-    <!-- Favicon -->
-    <link rel="icon"
-        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230ea5e9' stroke-width='2'><path d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10'/><path d='m9 12 2 2 4-4'/></svg>">
+  <!-- Favicon -->
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230ea5e9' stroke-width='2'><path d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10'/><path d='m9 12 2 2 4-4'/></svg>">
 
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <!-- Styles -->
-    <link rel="stylesheet" href="../css/styles.css">
+  <!-- Styles -->
+  <link rel="stylesheet" href="/frontend/css/styles.css">
 </head>
 
 <body>
-    <!-- Navbar -->
-    <nav class="navbar">
-        <div class="navbar-content">
-            <div class="navbar-brand">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2" width="24" height="24">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
-                    <path d="m9 12 2 2 4-4" />
-                </svg>
-                <span>VERITAS</span>
-            </div>
-            <div class="status-badge">
-                <span class="dot"></span>
-                System Operational
-            </div>
-        </div>
-    </nav>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar-content">
+      <div class="navbar-brand">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          width="24" height="24">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
+          <path d="m9 12 2 2 4-4" />
+        </svg>
+        <span>VERITAS</span>
+      </div>
+      <div class="status-badge">
+        <span class="dot"></span>
+        System Operational
+      </div>
+    </div>
+  </nav>
 
-    <!-- Main Content -->
-    <main class="main-container">
-        <div class="results-container" id="resultsContainer"></div>
-    </main>
+  <!-- Main Content -->
+  <main class="main-container">
+    <div class="results-container" id="resultsContainer"></div>
+  </main>
 
-    <!-- Scripts -->
-    <script src="../js/icons.js"></script>
-    <script src="../js/shared.js"></script>
-    <script>
-        const ResultsPage = {
-            result: null,
-            thumbnail: null,
+  <!-- Scripts -->
+  <script src="/frontend/js/icons.js"></script>
+  <script src="/frontend/js/shared.js"></script>
+  <script>
+    const ResultsPage = {
+      result: null,
+      thumbnail: null,
 
-            init() {
-                const data = Veritas.getResult();
-                if (!data || !data.result) {
-                    window.location.href = '../index.html';
-                    return;
-                }
-                this.result = data.result;
-                this.thumbnail = data.thumbnail;
-                this.render();
-            },
+      init() {
+        const data = Veritas.getResult();
+        if (!data || !data.result) {
+          window.location.href = '/';
+          return;
+        }
+        this.result = data.result;
+        this.thumbnail = data.thumbnail;
+        this.render();
+      },
 
-            render() {
-                const r = this.result;
-                const isAuthentic = r.verdict === 'Authentic';
-                const isSuspicious = r.verdict === 'Fake/Generated' || r.verdict === 'Suspicious';
-                const verdictClass = isAuthentic ? 'authentic' : isSuspicious ? 'suspicious' : 'inconclusive';
-                const gaugeColor = isAuthentic ? '#10b981' : isSuspicious ? '#ef4444' : '#f59e0b';
+      render() {
+        const r = this.result;
+        const isAuthentic = r.verdict === 'Authentic';
+        const isSuspicious = r.verdict === 'Fake/Generated' || r.verdict === 'Suspicious';
+        const verdictClass = isAuthentic ? 'authentic' : isSuspicious ? 'suspicious' : 'inconclusive';
+        const gaugeColor = isAuthentic ? '#10b981' : isSuspicious ? '#ef4444' : '#f59e0b';
 
-                let html = '';
+        let html = '';
 
-                if (this.thumbnail) {
-                    html += `
+        if (this.thumbnail) {
+          html += `
             <div class="evidence-preview">
               <div class="evidence-badge">
                 ${Icons.image()}
@@ -81,9 +81,9 @@
               <img src="${this.thumbnail}" alt="Evidence Preview" class="evidence-image">
             </div>
           `;
-                }
+        }
 
-                html += `
+        html += `
           <div class="verdict-banner ${verdictClass}">
             <div class="verdict-info">
               <div class="verdict-icon">
@@ -105,18 +105,18 @@
           </div>
         `;
 
-                if (r.learnedPatternsUsed > 0) {
-                    html += `
+        if (r.learnedPatternsUsed > 0) {
+          html += `
             <div class="learning-badge">
               <span class="learning-icon">🧠</span>
               <span>AI used <strong>${r.learnedPatternsUsed} learned patterns</strong></span>
             </div>
           `;
-                }
+        }
 
-                html += '<div class="results-grid">';
+        html += '<div class="results-grid">';
 
-                html += `
+        html += `
           <div class="findings-column">
             <section class="section-card">
               <h3 class="section-title">Executive Summary</h3>
@@ -128,12 +128,13 @@
                 ${(r.reasoning || []).map(item => `<li>${item}</li>`).join('')}
               </ul>
             </section>
+            ${this.renderWatermarks(r)}
             ${this.renderRiskScore(r)}
             ${this.renderReverseSearch(r)}
           </div>
         `;
 
-                html += `
+        html += `
           <div class="tech-column">
             <section class="section-card">
               <h3 class="section-title">Technical Analysis</h3>
@@ -142,13 +143,13 @@
               </div>
             </section>
             ${this.renderSources(r)}
-            <button class="btn-secondary" onclick="window.location.href='../index.html'">Start New Analysis</button>
+            <button class="btn-secondary" onclick="window.location.href='/'">Start New Analysis</button>
           </div>
         `;
 
-                html += '</div>';
+        html += '</div>';
 
-                html += `
+        html += `
           <div class="feedback-section" id="feedbackSection">
             <button class="btn-report" onclick="ResultsPage.showFeedbackForm()">
               ${Icons.alertTriangle()}
@@ -157,16 +158,16 @@
           </div>
         `;
 
-                document.getElementById('resultsContainer').innerHTML = html;
-            },
+        document.getElementById('resultsContainer').innerHTML = html;
+      },
 
-            renderRiskScore(r) {
-                if (r.riskScore === undefined) return '';
-                const risk = r.riskScore;
-                const level = risk > 70 ? 'high' : risk > 40 ? 'medium' : 'low';
-                const label = risk > 70 ? 'HIGH RISK' : risk > 40 ? 'MODERATE' : 'LOW RISK';
-                const color = risk > 70 ? '#ef4444' : risk > 40 ? '#f59e0b' : '#10b981';
-                return `
+      renderRiskScore(r) {
+        if (r.riskScore === undefined) return '';
+        const risk = r.riskScore;
+        const level = risk > 70 ? 'high' : risk > 40 ? 'medium' : 'low';
+        const label = risk > 70 ? 'HIGH RISK' : risk > 40 ? 'MODERATE' : 'LOW RISK';
+        const color = risk > 70 ? '#ef4444' : risk > 40 ? '#f59e0b' : '#10b981';
+        return `
           <section class="section-card">
             <h3 class="section-title">Manipulation Risk Score</h3>
             <div class="risk-container">
@@ -180,12 +181,68 @@
             </div>
           </section>
         `;
-            },
+      },
 
-            renderReverseSearch(r) {
-                if (!r.reverseSearch) return '';
-                const rev = r.reverseSearch;
-                return `
+      renderWatermarks(r) {
+        if (!r.watermarks) return '';
+        const w = r.watermarks;
+        const hasAny = w.c2pa?.detected || w.synthid?.detected || w.visual_ai?.detected;
+
+        if (!hasAny) return '';
+
+        let badges = '';
+
+        if (w.c2pa?.detected) {
+          badges += `
+                        <div class="watermark-badge c2pa">
+                            <span class="watermark-icon">🏷️</span>
+                            <div class="watermark-info">
+                                <span class="watermark-name">C2PA Metadata</span>
+                                <span class="watermark-source">${w.c2pa.source || 'AI Generated'}</span>
+                            </div>
+                        </div>
+                    `;
+        }
+
+        if (w.synthid?.detected) {
+          badges += `
+                        <div class="watermark-badge synthid">
+                            <span class="watermark-icon">🔒</span>
+                            <div class="watermark-info">
+                                <span class="watermark-name">Google SynthID</span>
+                                <span class="watermark-source">${w.synthid.confidence}% confidence</span>
+                            </div>
+                        </div>
+                    `;
+        }
+
+        if (w.visual_ai?.detected) {
+          badges += `
+                        <div class="watermark-badge visual">
+                            <span class="watermark-icon">👁️</span>
+                            <div class="watermark-info">
+                                <span class="watermark-name">AI Visual Patterns</span>
+                                <span class="watermark-source">${w.visual_ai.confidence}% confidence</span>
+                            </div>
+                        </div>
+                    `;
+        }
+
+        return `
+                    <section class="section-card watermarks-section">
+                        <h3 class="section-title">🔍 Watermark Detection</h3>
+                        <p class="watermark-intro">AI generation signatures found:</p>
+                        <div class="watermark-badges">
+                            ${badges}
+                        </div>
+                    </section>
+                `;
+      },
+
+      renderReverseSearch(r) {
+        if (!r.reverseSearch) return '';
+        const rev = r.reverseSearch;
+        return `
           <section class="section-card">
             <h3 class="section-title">Reverse Image Search</h3>
             <div class="reverse-search-info">
@@ -196,10 +253,10 @@
             </div>
           </section>
         `;
-            },
+      },
 
-            renderTechDetails(details) {
-                return details.map((item) => `
+      renderTechDetails(details) {
+        return details.map((item) => `
           <div class="tech-detail">
             <div class="tech-header">
               <div class="tech-info">
@@ -210,11 +267,11 @@
             </div>
           </div>
         `).join('');
-            },
+      },
 
-            renderSources(r) {
-                if (!r.sources || r.sources.length === 0) return '';
-                return `
+      renderSources(r) {
+        if (!r.sources || r.sources.length === 0) return '';
+        return `
           <section class="section-card">
             <h3 class="section-title">Verified Sources</h3>
             <ul class="sources-list">
@@ -222,10 +279,10 @@
             </ul>
           </section>
         `;
-            },
+      },
 
-            showFeedbackForm() {
-                document.getElementById('feedbackSection').innerHTML = `
+      showFeedbackForm() {
+        document.getElementById('feedbackSection').innerHTML = `
           <div class="feedback-form">
             <h4>${Icons.shieldCheck()} Teach Veritas</h4>
             <p>What should the correct verdict be?</p>
@@ -236,49 +293,49 @@
             <button class="btn-cancel" onclick="ResultsPage.cancelFeedback()">Cancel</button>
           </div>
         `;
-            },
+      },
 
-            cancelFeedback() {
-                document.getElementById('feedbackSection').innerHTML = `
+      cancelFeedback() {
+        document.getElementById('feedbackSection').innerHTML = `
           <button class="btn-report" onclick="ResultsPage.showFeedbackForm()">
             ${Icons.alertTriangle()}
             Report Incorrect Verdict
           </button>
         `;
-            },
+      },
 
-            async submitFeedback(correctVerdict) {
-                try {
-                    await fetch('http://localhost:5000/api/learn', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            type: 'image',
-                            pattern: `Verdict corrected to ${correctVerdict}`,
-                            verdict: correctVerdict,
-                            confidence: 70,
-                            originalVerdict: this.result.verdict
-                        })
-                    });
-                    document.getElementById('feedbackSection').innerHTML = `
+      async submitFeedback(correctVerdict) {
+        try {
+          await fetch('http://localhost:5000/api/learn', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'image',
+              pattern: `Verdict corrected to ${correctVerdict}`,
+              verdict: correctVerdict,
+              confidence: 70,
+              originalVerdict: this.result.verdict
+            })
+          });
+          document.getElementById('feedbackSection').innerHTML = `
             <div class="feedback-success">
               <h4>Thanks for the feedback!</h4>
               <p>Your correction has been recorded.</p>
             </div>
           `;
-                } catch (e) {
-                    document.getElementById('feedbackSection').innerHTML = `
+        } catch (e) {
+          document.getElementById('feedbackSection').innerHTML = `
             <div class="feedback-success">
               <h4>Feedback Saved</h4>
               <p>Stored locally.</p>
             </div>
           `;
-                }
-            }
-        };
+        }
+      }
+    };
 
-        document.addEventListener('DOMContentLoaded', () => ResultsPage.init());
-    </script>
+    document.addEventListener('DOMContentLoaded', () => ResultsPage.init());
+  </script>
 </body>
 
 </html>

@@ -18,10 +18,21 @@ from learning.supabase_db import (
 from external.factcheck import FactCheckService, search_news_for_claim
 from forensics.image_forensics import analyze_image_bytes
 from forensics.reverse_search import search_image
+from forensics.c2pa_detector import detect_c2pa
+from forensics.synthid_detector import detect_synthid
+from forensics.visual_detector import detect_visual_patterns
 
 # Initialize
 Config.validate()
-app = Flask(__name__)
+
+# Get the project root (parent of backend folder)
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(BACKEND_DIR)
+
+# Setup Flask to serve static files from project root
+app = Flask(__name__, 
+            static_folder=PROJECT_ROOT,
+            static_url_path='')
 CORS(app)
 
 # Configure max upload size to 2GB
@@ -86,6 +97,19 @@ def build_prompt_with_patterns(media_type):
     if pattern_text:
         return f"{base}\n\n{pattern_text}\n{RESPONSE_FORMAT}", patterns_info
     return f"{base}{RESPONSE_FORMAT}", patterns_info
+
+
+# ========== FRONTEND ROUTES ==========
+
+@app.route('/')
+def serve_index():
+    """Serve main index.html"""
+    return app.send_static_file('index.html')
+
+@app.route('/frontend/pages/<path:filename>')
+def serve_pages(filename):
+    """Serve pages from frontend/pages/"""
+    return app.send_static_file(f'frontend/pages/{filename}')
 
 
 # ========== HEALTH ==========
@@ -224,13 +248,37 @@ def verify_image():
         
         groq = get_client()
         
-        # Step 1: Run forensics FIRST to get actual evidence
-        with ThreadPoolExecutor(max_workers=2) as ex:
+        # Step 1: Run forensics and watermark detection in parallel
+        with ThreadPoolExecutor(max_workers=5) as ex:
             forensics_future = ex.submit(analyze_image_bytes, content, filename)
             reverse_future = ex.submit(search_image, content)
+            c2pa_future = ex.submit(detect_c2pa, content)
+            synthid_future = ex.submit(detect_synthid, content)
+            visual_future = ex.submit(detect_visual_patterns, content)
             
             forensics = forensics_future.result()
             reverse = reverse_future.result()
+            c2pa_result = c2pa_future.result()
+            synthid_result = synthid_future.result()
+            visual_result = visual_future.result()
+        
+        # Build watermark detection summary
+        watermarks = {
+            "c2pa": {
+                "detected": c2pa_result.get("detected", False),
+                "source": c2pa_result.get("source"),
+                "confidence": c2pa_result.get("confidence", 0)
+            },
+            "synthid": {
+                "detected": synthid_result.get("detected", False),
+                "confidence": synthid_result.get("confidence", 0)
+            },
+            "visual_ai": {
+                "detected": visual_result.get("detected", False),
+                "confidence": visual_result.get("confidence", 0),
+                "indicators": visual_result.get("indicators", [])
+            }
+        }
         
         # Step 2: Build AI prompt with forensic evidence
         ela = forensics.get("ela", {})
@@ -330,6 +378,64 @@ Based on this forensic evidence, determine if the image is AI-generated or manip
                 result["reverseSearch"] = reverse.get("analysis", {})
                 result["reverseSearch"]["matches"] = reverse.get("matches_found", 0)
                 result["reverseSearch"]["manual_urls"] = reverse.get("manual_search_urls", {})
+            
+            # Add watermark detection results
+            result["watermarks"] = watermarks
+            
+            # ===== WATERMARK BOOST: Increase confidence if watermarks detected =====
+            watermark_boost = 0
+            watermark_sources = []
+            
+            if c2pa_result.get("detected"):
+                watermark_boost += 20  # C2PA is strong evidence
+                watermark_sources.append(f"C2PA ({c2pa_result.get('source', 'AI')})")
+            
+            if synthid_result.get("detected"):
+                watermark_boost += 15
+                watermark_sources.append("SynthID")
+            
+            if visual_result.get("detected"):
+                # Add based on visual confidence
+                visual_boost = min(15, visual_result.get("confidence", 0) // 5)
+                watermark_boost += visual_boost
+                watermark_sources.append("Visual AI Patterns")
+            
+            if watermark_boost > 0:
+                original_confidence = result.get("confidence", 50)
+                new_confidence = min(95, original_confidence + watermark_boost)
+                result["confidence"] = new_confidence
+                result["watermarkBoost"] = f"+{watermark_boost}% from {', '.join(watermark_sources)}"
+                
+                # If any watermark detected and verdict is not already Fake, change it
+                if result.get("verdict") in ["Authentic", "Inconclusive"]:
+                    result["verdict"] = "Fake/Generated"
+                    result["verdictAdjustment"] = f"Changed due to detected: {', '.join(watermark_sources)}"
+            
+            # Add watermark tech details
+            if c2pa_result.get("detected"):
+                result["technicalDetails"].append({
+                    "label": "C2PA Watermark",
+                    "value": f"Source: {c2pa_result.get('source', 'Unknown')}",
+                    "status": "fail",
+                    "explanation": f"AI generation signature detected (DALL-E/Adobe/etc)"
+                })
+            
+            if synthid_result.get("detected"):
+                result["technicalDetails"].append({
+                    "label": "SynthID",
+                    "value": f"Confidence: {synthid_result.get('confidence', 0)}%",
+                    "status": "fail",
+                    "explanation": "Google AI watermark detected"
+                })
+            
+            if visual_result.get("detected"):
+                indicators_text = ", ".join(visual_result.get("indicators", [])[:2]) or "Pattern anomalies"
+                result["technicalDetails"].append({
+                    "label": "Visual AI Patterns",
+                    "value": f"Confidence: {visual_result.get('confidence', 0)}%",
+                    "status": "fail",
+                    "explanation": indicators_text
+                })
             
             result["riskScore"] = risk_score
             result["processingTime"] = f"{time.time() - start_time:.2f}s"

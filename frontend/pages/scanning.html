@@ -16,7 +16,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- Styles -->
-    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="/frontend/css/styles.css">
 </head>
 
 <body>
@@ -57,8 +57,8 @@
     </main>
 
     <!-- Scripts -->
-    <script src="../js/icons.js"></script>
-    <script src="../js/shared.js"></script>
+    <script src="/frontend/js/icons.js"></script>
+    <script src="/frontend/js/shared.js"></script>
     <script>
         const ScanningPage = {
             steps: [],
@@ -68,7 +68,7 @@
             async init() {
                 const input = Veritas.getInput();
                 if (!input) {
-                    window.location.href = '../index.html';
+                    window.location.href = '/';
                     return;
                 }
 
@@ -80,7 +80,7 @@
                     await this.runAnalysis(input);
                 } catch (error) {
                     console.error('Analysis failed:', error);
-                    window.location.href = '../index.html?error=' + encodeURIComponent(error.message);
+                    window.location.href = '/?error=' + encodeURIComponent(error.message);
                 }
             },
 
