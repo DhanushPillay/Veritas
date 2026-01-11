@@ -448,15 +448,11 @@ Based on this forensic evidence, determine if the image is AI-generated or manip
                 watermark_sources.append("Visual AI Patterns")
             
             if watermark_boost > 0:
-                original_confidence = result.get("confidence", 50)
-                new_confidence = min(95, original_confidence + watermark_boost)
-                result["confidence"] = new_confidence
-                result["watermarkBoost"] = f"+{watermark_boost}% from {', '.join(watermark_sources)}"
-                
-                # If any watermark detected and verdict is not already Fake, change it
-                if result.get("verdict") in ["Authentic", "Inconclusive"]:
-                    result["verdict"] = "Fake/Generated"
-                    result["verdictAdjustment"] = f"Changed due to detected: {', '.join(watermark_sources)}"
+                # ABSOLUTE OVERRIDE: If any watermark is detected, it is 100% fake.
+                result["confidence"] = 100
+                result["verdict"] = "Fake/Generated"
+                result["watermarkBoost"] = "Definitive Proof: AI Watermark Detected"
+                result["verdictAdjustment"] = f"Override: {', '.join(watermark_sources)} found."
             
             # Add watermark tech details
             if c2pa_result.get("detected"):
