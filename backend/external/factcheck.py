@@ -150,3 +150,30 @@ def search_news_for_claim(claim: str) -> List[Dict]:
     except Exception as e:
         print(f"News API error: {e}")
         return []
+
+
+def search_web_context(query: str) -> List[Dict]:
+    """
+    Search web using DuckDuckGo (Free, no key required).
+    """
+    try:
+        from duckduckgo_search import DDGS
+        
+        results = []
+        # Use DDGS context manager for stability
+        with DDGS() as ddgs:
+            # Search for the query
+            ddg_results = list(ddgs.text(query[:200], max_results=5))
+            
+            for r in ddg_results:
+                results.append({
+                    "title": r.get('title'),
+                    "url": r.get('href'),
+                    "snippet": r.get('body'),
+                    "source": "Web Search (DuckDuckGo)"
+                })
+                
+        return results
+    except Exception as e:
+        print(f"DuckDuckGo error: {e}")
+        return []

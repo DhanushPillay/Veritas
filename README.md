@@ -98,4 +98,3 @@ Veritas gets smarter over time. When it makes a mistake, you can tell it:
 
 ---
 
-*Made with Google Gemini AI and custom-trained deepfake detection models*

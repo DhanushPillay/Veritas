@@ -15,7 +15,7 @@ from learning.supabase_db import (
     load_patterns, get_patterns_by_type, add_pattern, 
     format_patterns_for_prompt, get_stats, delete_pattern
 )
-from external.factcheck import FactCheckService, search_news_for_claim
+from external.factcheck import FactCheckService, search_news_for_claim, search_web_context
 from forensics.image_forensics import analyze_image_bytes
 from forensics.reverse_search import search_image
 from forensics.c2pa_detector import detect_c2pa
@@ -190,33 +190,62 @@ def verify_text():
         
         factcheck_results = []
         news_results = []
+        web_results = []
         
         if use_search:
-            with ThreadPoolExecutor(max_workers=3) as ex:
+            # 1. Run searches in parallel
+            with ThreadPoolExecutor(max_workers=4) as ex:
                 futures = {
-                    ex.submit(run_ai, base_prompt): "ai",
                     ex.submit(factcheck.search_claims, text[:200]): "fc",
-                    ex.submit(search_news_for_claim, text[:100]): "news"
+                    ex.submit(search_news_for_claim, text[:100]): "news",
+                    ex.submit(search_web_context, text[:200]): "web"
                 }
+                
                 for f in as_completed(futures):
                     name = futures[f]
                     try:
-                        if name == "ai": ai_response = f.result()
-                        elif name == "fc": factcheck_results = f.result()
-                        elif name == "news": news_results = f.result()
-                    except: pass
-        else:
-            ai_response = run_ai(base_prompt)
+                        res = f.result()
+                        if name == "fc": factcheck_results = res
+                        elif name == "news": news_results = res
+                        elif name == "web": web_results = res
+                    except Exception as e:
+                        print(f"Search error {name}: {e}")
+            
+            # 2. Build context for AI
+            context = ""
+            if factcheck_results:
+                context += "\n[VERIFIED FACT CHECKS]\n" + "\n".join([f"- {f['title']}: {f['rating']}" for f in factcheck_results[:3]])
+            if news_results:
+                context += "\n[LATEST NEWS]\n" + "\n".join([f"- {n['title']} ({n['source']})" for n in news_results[:3]])
+            if web_results:
+                context += "\n[WEB CONTEXT]\n" + "\n".join([f"- {w['snippet']}" for w in web_results[:3]])
+            
+            if context:
+                base_prompt += f"\n\nSEARCH CONTEXT:{context}\nUse this context to verify the claim."
+
+        # 3. Run AI
+        ai_response = run_ai(base_prompt)
         
         start = ai_response.find('{')
         end = ai_response.rfind('}') + 1
         
         if start != -1 and end > start:
             result = json.loads(ai_response[start:end])
+            # Combine sources
+            sources = result.get('sources', [])
+            
             if factcheck_results:
                 boost = factcheck.get_credibility_boost(factcheck_results)
-                result['sources'] = [{'title': f"{fc['publisher']}: {fc['rating']}", 'uri': fc['url']} for fc in factcheck_results]
+                sources.extend([{'title': f"{fc['publisher']}: {fc['rating']}", 'uri': fc['url']} for fc in factcheck_results])
                 result['factCheckSummary'] = boost['summary']
+            
+            if web_results:
+                # Add web results to sources
+                sources.extend([{'title': w['title'], 'uri': w['url']} for w in web_results])
+            
+            if sources:
+                result['sources'] = sources
+
             if news_results:
                 result['relatedNews'] = news_results
             result['processingTime'] = f"{time.time() - start_time:.2f}s"
