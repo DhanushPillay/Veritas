@@ -19,7 +19,7 @@ const ResultView = {
     this.localVerdict = result.verdict;
 
     const isAuthentic = result.verdict === 'Authentic';
-    const isSuspicious = result.verdict === 'Fake/Generated' || result.verdict === 'Suspicious';
+    const isSuspicious = result.verdict === 'AI-Generated' || result.verdict === 'Suspicious';
     const isInconclusive = result.verdict === 'Inconclusive';
 
     // Auto-expand details if suspicious
@@ -62,21 +62,8 @@ const ResultView = {
               <span class="gauge-value">${result.confidence}%</span>
               <span class="gauge-label">Trust</span>
             </div>
-          </div>
         </div>
       </div>`;
-
-    // Learning indicator - shows if AI used learned patterns
-    if (result.learnedPatternsUsed > 0) {
-      html += `
-        <div class="learning-badge">
-          <span class="learning-icon">🧠</span>
-          <span>AI used <strong>${result.learnedPatternsUsed} learned patterns</strong> in this analysis</span>
-          <div class="patterns-tooltip">
-            ${result.patternsApplied?.map(p => `<div class="pattern-item">• "${p.pattern}" → ${p.verdict}</div>`).join('') || ''}
-          </div>
-        </div>`;
-    }
 
     // Inconclusive Warning
     if (isInconclusive) {
@@ -299,8 +286,8 @@ const ResultView = {
         <div class="verdict-buttons">
           <button class="verdict-btn ${this.localVerdict === 'Authentic' ? 'selected-real' : ''}" 
                   onclick="ResultView.setVerdict('Authentic')">Actually Real</button>
-          <button class="verdict-btn ${this.localVerdict === 'Fake/Generated' ? 'selected-fake' : ''}" 
-                  onclick="ResultView.setVerdict('Fake/Generated')">Actually Fake</button>
+          <button class="verdict-btn ${this.localVerdict === 'AI-Generated' ? 'selected-fake' : ''}" 
+                  onclick="ResultView.setVerdict('AI-Generated')">Actually Fake</button>
         </div>
         <label class="feedback-label">What did you notice? (optional)</label>
         <div class="pattern-chips" id="patternChips">

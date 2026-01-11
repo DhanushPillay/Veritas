@@ -92,7 +92,7 @@
     </div>
 
     <!-- Input Card -->
-    <div class="input-card">
+    <div class="input-card" id="inputCard">
       <!-- Text Input (default) -->
       <div id="textInput" class="input-section">
         <label class="input-label">Content to Analyze</label>
@@ -136,6 +136,39 @@
       </div>
     </div>
 
+    <!-- SCANNING UI (Hidden by default) -->
+    <div class="analyzing-container" id="scanningContainer" style="display: none;">
+      <div class="spinner-wrapper">
+        <div class="spinner"></div>
+        <div class="spinner-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            width="40" height="40">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
+            <path d="m9 12 2 2 4-4" />
+          </svg>
+        </div>
+      </div>
+      <h2 class="analyzing-title">Analyzing Integrity</h2>
+      <div class="analysis-steps" id="analysisSteps"></div>
+    </div>
+
+    <!-- RESULTS UI (Hidden by default) -->
+    <div class="results-container" id="resultsContainer" style="display: none;"></div>
+
+    <!-- Animated Background (Hidden by default, shown for results) -->
+    <div class="background-paths" id="resultBackground" style="display: none;" aria-hidden="true">
+      <svg viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
+        <path class="path" d="M-100,400 Q200,100 500,400 T1100,400 T1700,400" />
+        <path class="path" d="M-100,450 Q250,200 550,350 T1150,450 T1750,350" />
+        <path class="path" d="M-100,350 Q300,50 600,350 T1200,350 T1800,350" />
+        <path class="path" d="M-100,500 Q150,300 450,500 T1050,400 T1650,500" />
+        <path class="path" d="M-100,300 Q350,150 650,400 T1250,300 T1850,400" />
+        <path class="path" d="M-100,550 Q200,400 500,550 T1100,500 T1700,550" />
+        <path class="path" d="M-100,250 Q400,100 700,300 T1300,250 T1900,300" />
+        <path class="path" d="M-100,600 Q250,500 550,600 T1150,550 T1750,600" />
+      </svg>
+    </div>
+
     <!-- History Section -->
     <div class="history-section" id="historySection" style="display: none;">
       <div class="history-header">
@@ -157,16 +190,54 @@
   <!-- Scripts -->
   <script src="frontend/js/icons.js"></script>
   <script src="frontend/js/shared.js"></script>
+  <script src="frontend/js/result-view.js"></script>
   <script>
     // ========== INDEX PAGE LOGIC ==========
     const IndexPage = {
       activeTab: 'text',
       selectedFile: null,
       useSearch: true, // Always on
+      stepInterval: null,
+      steps: [],
+      currentStep: 0,
 
       init() {
         this.bindEvents();
         this.renderHistory();
+        window.App = this; // Expose for ResultView to call resetAnalysis
+      },
+
+      resetAnalysis() {
+        // Hide Results, Show Input
+        document.getElementById('resultsContainer').style.display = 'none';
+        document.getElementById('resultBackground').style.display = 'none';
+        document.getElementById('historySection').style.display = 'block';
+
+        document.getElementById('inputCard').style.display = 'flex';
+        document.getElementById('tabs').style.display = 'flex';
+
+        // Reset state
+        this.selectedFile = null;
+        document.getElementById('textArea').value = '';
+        document.getElementById('fileSelector').value = '';
+        document.getElementById('uploadText').textContent = `Drop your ${this.activeTab} file here`;
+        this.updateButtonState();
+      },
+
+      showResults(result, thumbnail) {
+        // Hide Scanning
+        document.getElementById('scanningContainer').style.display = 'none';
+
+        // Show Results Container & Background
+        const resultsContainer = document.getElementById('resultsContainer');
+        resultsContainer.style.display = 'block';
+        document.getElementById('resultBackground').style.display = 'block';
+
+        // Render via ResultView module
+        resultsContainer.innerHTML = ResultView.render(result, thumbnail, this.activeTab);
+
+        // Scroll to top
+        window.scrollTo(0, 0);
       },
 
       bindEvents() {
@@ -258,54 +329,180 @@
           ? document.getElementById('textArea').value
           : this.selectedFile;
 
-        // Save input to localStorage, always use search
-        await Veritas.saveInput(this.activeTab, content, true);
+        // --- SPA: HIDE INPUT, SHOW SCANNING ---
+        document.getElementById('inputCard').style.display = 'none';
+        document.getElementById('tabs').style.display = 'none';
+        document.getElementById('scanningContainer').style.display = 'flex';
 
-        // Redirect to scanning page
-        window.location.href = 'frontend/pages/scanning.html';
+        // Initialize steps
+        this.steps = this.getSteps(this.activeTab, this.useSearch);
+        this.renderSteps();
+        this.startStepAnimation();
+
+        try {
+          // Run analysis (using shared.js API call directly)
+          let thumbnail = null;
+          if (this.activeTab !== 'text') {
+            thumbnail = await Veritas.generateThumbnail(this.selectedFile, this.activeTab);
+          }
+
+          // Using Shared.js verify call
+          const result = await Veritas.verify(this.activeTab, content, this.useSearch);
+
+          clearInterval(this.stepInterval);
+          this.completeAnimation();
+
+          // Save lightweight record to history (avoiding large objects in localStorage)
+          Veritas.addToHistory({
+            type: this.activeTab,
+            preview: this.activeTab === 'text' ? (content.substring(0, 60) + '...') : this.selectedFile.name,
+            thumbnail,
+            result: {
+              verdict: result.verdict,
+              confidence: result.confidence,
+              timestamp: Date.now()
+            }
+          });
+
+          // RENDER DIRECTLY (Bypassing localStorage size limits)
+          setTimeout(() => {
+            this.showResults(result, thumbnail);
+          }, 800);
+
+        } catch (error) {
+          console.error('Analysis failed:', error);
+          alert('Analysis Error: ' + error.message);
+          location.reload();
+        }
       },
 
-      renderHistory() {
-        const history = Veritas.getHistory();
+      getSteps(type, useSearch) {
+        const steps = ['Initializing forensic protocols...'];
+        const typeSteps = {
+          text: ['Analyzing linguistic patterns...', 'Checking logical consistency...', 'Detecting LLM generation markers...'],
+          image: ['Scanning EXIF metadata...', 'Running Error Level Analysis...', 'Checking shadow coherence...', 'Detecting AI artifacts...'],
+          audio: ['Generating spectral analysis...', 'Detecting voice cloning...', 'Analyzing breathing patterns...'],
+          video: ['Extracting keyframes...', 'Checking audio-visual sync...', 'Analyzing temporal consistency...', 'Detecting face manipulation...']
+        };
+        steps.push(...(typeSteps[type] || []));
+        if (useSearch) {
+          steps.push('Connecting to global index...', 'Cross-referencing sources...');
+        }
+        steps.push('Compiling final verdict...');
+        return steps;
+      },
+
+      renderSteps() {
+        const container = document.getElementById('analysisSteps');
+        container.innerHTML = this.steps.map((label, idx) => `
+          <div class="step">
+            <div class="step-indicator ${idx === 0 ? 'processing' : 'pending'}"></div>
+            <span class="step-label ${idx === 0 ? 'processing' : ''}">${label}</span>
+          </div>
+        `).join('');
+      },
+
+      startStepAnimation() {
+        this.currentStep = 0;
+        this.stepInterval = setInterval(() => {
+          if (this.currentStep >= this.steps.length - 1) return;
+          const indicators = document.querySelectorAll('.step-indicator');
+          const labels = document.querySelectorAll('.step-label');
+
+          if (indicators[this.currentStep]) {
+            indicators[this.currentStep].classList.remove('processing');
+            indicators[this.currentStep].classList.add('completed');
+            indicators[this.currentStep].innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="20 6 9 17 4 12"/></svg>`;
+            labels[this.currentStep].classList.remove('processing');
+            labels[this.currentStep].classList.add('completed');
+          }
+
+          this.currentStep++;
+          if (indicators[this.currentStep]) {
+            indicators[this.currentStep].classList.add('processing');
+            labels[this.currentStep].classList.add('processing');
+          }
+        }, 1200);
+      },
+
+      completeAnimation() {
+        document.querySelectorAll('.step-indicator').forEach(el => {
+          el.classList.remove('processing', 'pending');
+          el.classList.add('completed');
+          el.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="20 6 9 17 4 12"/></svg>`;
+        });
+        document.querySelectorAll('.step-label').forEach(el => {
+          el.classList.remove('processing');
+          el.classList.add('completed');
+        });
+      },
+
+      async renderHistory() {
+        const history = await Veritas.getHistory();
         const section = document.getElementById('historySection');
         const grid = document.getElementById('historyGrid');
 
-        if (history.length === 0) {
+        if (!history || history.length === 0) {
           section.style.display = 'none';
           return;
         }
 
         section.style.display = 'block';
         grid.innerHTML = history.map(item => {
-          const verdictClass = item.result?.verdict === 'Authentic' ? 'authentic'
-            : (item.result?.verdict === 'Fake/Generated' || item.result?.verdict === 'Suspicious') ? 'suspicious'
+          // Supabase format: verdict is top-level, result is JSONB
+          const verdict = item.verdict || item.result?.verdict || 'Unknown';
+          const verdictClass = verdict === 'Authentic' ? 'authentic'
+            : (verdict === 'AI-Generated' || verdict === 'Suspicious') ? 'suspicious'
               : 'inconclusive';
 
+          // Use media_url as thumbnail fallback
+          const thumbnailSrc = item.thumbnail_url || item.media_url;
+
           return `
-            <div class="history-item" onclick="IndexPage.loadHistoryItem('${item.id}')">
-              <div class="history-thumb">
-                ${item.thumbnail
-              ? `<img src="${item.thumbnail}" alt="preview">`
+            <div class="history-item">
+              <div class="history-thumb" onclick="IndexPage.loadHistoryItem('${item.id}')">
+                ${thumbnailSrc
+              ? `<img src="${thumbnailSrc}" alt="preview">`
               : Icons.getMediaTypeIcon(item.type)}
               </div>
-              <div class="history-content">
+              <div class="history-content" onclick="IndexPage.loadHistoryItem('${item.id}')">
                 <div class="history-meta">
-                  <span class="history-date">${new Date(item.timestamp).toLocaleDateString()}</span>
-                  <span class="history-verdict ${verdictClass}">${item.result?.verdict || 'Unknown'}</span>
+                  <span class="history-date">${new Date(item.created_at).toLocaleDateString()}</span>
+                  <span class="history-verdict ${verdictClass}">${verdict}</span>
                 </div>
                 <p class="history-preview">${item.preview || 'No preview'}</p>
               </div>
+              <button class="history-delete-btn" onclick="event.stopPropagation(); IndexPage.deleteHistoryItem('${item.id}')" title="Delete">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                  <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                </svg>
+              </button>
             </div>
           `;
         }).join('');
       },
 
-      loadHistoryItem(id) {
-        const history = Veritas.getHistory();
-        const item = history.find(h => h.id === id);
-        if (item) {
-          Veritas.saveResult(item.result, item.thumbnail);
-          window.location.href = 'frontend/pages/results.html';
+      async deleteHistoryItem(id) {
+        if (!confirm('Delete this analysis?')) return;
+
+        const success = await Veritas.deleteHistoryItem(id);
+        if (success) {
+          await this.renderHistory();
+        } else {
+          alert('Failed to delete. Please try again.');
+        }
+      },
+
+      async loadHistoryItem(id) {
+        // Fetch full record from API
+        try {
+          const response = await fetch(`${Veritas.BACKEND_URL}/api/history/${id}`);
+          if (response.ok) {
+            const record = await response.json();
+            this.showResults(record.result, record.thumbnail_url || record.media_url);
+          }
+        } catch (e) {
+          console.error('Failed to load history item:', e);
         }
       }
     };

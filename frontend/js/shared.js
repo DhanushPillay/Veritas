@@ -79,26 +79,42 @@ const Veritas = {
         localStorage.removeItem(this.STORAGE_KEYS.PENDING);
     },
 
-    // ========== HISTORY ==========
+    // ========== HISTORY (Supabase API) ==========
 
-    getHistory() {
-        const data = localStorage.getItem(this.STORAGE_KEYS.HISTORY);
-        return data ? JSON.parse(data) : [];
+    async getHistory() {
+        try {
+            const response = await fetch(`${this.BACKEND_URL}/api/history`);
+            if (!response.ok) return [];
+            const data = await response.json();
+            return data.history || [];
+        } catch (e) {
+            console.error('Failed to fetch history:', e);
+            return [];
+        }
     },
 
+    async deleteHistoryItem(id) {
+        try {
+            const response = await fetch(`${this.BACKEND_URL}/api/history/${id}`, {
+                method: 'DELETE'
+            });
+            return response.ok;
+        } catch (e) {
+            console.error('Failed to delete history item:', e);
+            return false;
+        }
+    },
+
+    // Note: addToHistory is now handled by the backend during verification
+    // This is kept for local fallback only
     addToHistory(item) {
-        const history = this.getHistory();
-        history.unshift({
-            id: crypto.randomUUID(),
-            ...item,
-            timestamp: Date.now()
-        });
-        // Keep last 10 items
-        localStorage.setItem(this.STORAGE_KEYS.HISTORY, JSON.stringify(history.slice(0, 10)));
+        // No-op: history is now saved server-side
+        console.log('History saved server-side');
     },
 
     clearHistory() {
-        localStorage.removeItem(this.STORAGE_KEYS.HISTORY);
+        // No-op: clearing requires deleting each item via API
+        console.warn('Use deleteHistoryItem to remove individual items');
     },
 
     // ========== API CALLS ==========

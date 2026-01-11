@@ -79,7 +79,7 @@
       render() {
         const r = this.result;
         const isAuthentic = r.verdict === 'Authentic';
-        const isSuspicious = r.verdict === 'Fake/Generated' || r.verdict === 'Suspicious';
+        const isSuspicious = r.verdict === 'AI-Generated' || r.verdict === 'Suspicious';
         const verdictClass = isAuthentic ? 'authentic' : isSuspicious ? 'suspicious' : 'inconclusive';
         const gaugeColor = isAuthentic ? '#10b981' : isSuspicious ? '#ef4444' : '#f59e0b';
 
@@ -118,15 +118,6 @@
             </div>
           </div>
         `;
-
-        if (r.learnedPatternsUsed > 0) {
-          html += `
-            <div class="learning-badge">
-              <span class="learning-icon">🧠</span>
-              <span>AI used <strong>${r.learnedPatternsUsed} learned patterns</strong></span>
-            </div>
-          `;
-        }
 
         html += '<div class="results-grid">';
 
@@ -302,7 +293,7 @@
             <p>What should the correct verdict be?</p>
             <div class="verdict-buttons">
               <button class="verdict-btn" onclick="ResultsPage.submitFeedback('Authentic')">Actually Real</button>
-              <button class="verdict-btn" onclick="ResultsPage.submitFeedback('Fake/Generated')">Actually Fake</button>
+              <button class="verdict-btn" onclick="ResultsPage.submitFeedback('AI-Generated')">Actually Fake</button>
             </div>
             <button class="btn-cancel" onclick="ResultsPage.cancelFeedback()">Cancel</button>
           </div>

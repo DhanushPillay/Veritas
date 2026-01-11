@@ -16,6 +16,9 @@ from learning.supabase_db import (
     format_patterns_for_prompt, get_stats, delete_pattern
 )
 from external.factcheck import FactCheckService, search_news_for_claim, search_web_context, scrape_url_content
+from external.supabase_client import (
+    upload_media, delete_media, save_analysis, get_history, get_analysis, delete_analysis
+)
 from forensics.image_forensics import analyze_image_bytes
 from forensics.reverse_search import search_image
 from forensics.c2pa_detector import detect_c2pa
@@ -35,8 +38,8 @@ app = Flask(__name__,
             static_url_path='')
 CORS(app)
 
-# Configure max upload size to 2GB
-app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024 * 1024
+# Configure max upload size to 3GB
+app.config['MAX_CONTENT_LENGTH'] = 3 * 1024 * 1024 * 1024
 
 # Groq client
 client = None
@@ -75,7 +78,7 @@ PROMPTS = {
 RESPONSE_FORMAT = """
 Respond with ONLY valid JSON:
 {
-    "verdict": "Authentic" | "Fake/Generated" | "Inconclusive" | "Suspicious",
+    "verdict": "Authentic" | "AI-Generated" | "Inconclusive" | "Suspicious",
     "confidence": 0-100,
     "summary": "...",
     "reasoning": ["..."],
@@ -154,6 +157,43 @@ def delete_pattern_endpoint(pattern_id):
     if delete_pattern(pattern_id):
         return jsonify({"success": True})
     return jsonify({"error": "Not found"}), 404
+
+
+# ========== HISTORY API ==========
+
+@app.route('/api/history', methods=['GET'])
+def get_history_endpoint():
+    """Get recent analysis history from Supabase."""
+    try:
+        limit = request.args.get('limit', 20, type=int)
+        history = get_history(limit=limit)
+        return jsonify({"history": history})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/history/<record_id>', methods=['GET'])
+def get_history_item(record_id):
+    """Get a single history item."""
+    try:
+        record = get_analysis(record_id)
+        if record:
+            return jsonify(record)
+        return jsonify({"error": "Not found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/history/<record_id>', methods=['DELETE'])
+def delete_history_item(record_id):
+    """Delete a history item and its associated media."""
+    try:
+        success = delete_analysis(record_id)
+        if success:
+            return jsonify({"success": True})
+        return jsonify({"error": "Not found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 # ========== TEXT VERIFICATION ==========
@@ -450,7 +490,7 @@ Based on this forensic evidence, determine if the image is AI-generated or manip
             if watermark_boost > 0:
                 # ABSOLUTE OVERRIDE: If any watermark is detected, it is 100% fake.
                 result["confidence"] = 100
-                result["verdict"] = "Fake/Generated"
+                result["verdict"] = "AI-Generated"
                 result["watermarkBoost"] = "Definitive Proof: AI Watermark Detected"
                 result["verdictAdjustment"] = f"Override: {', '.join(watermark_sources)} found."
             
@@ -484,6 +524,31 @@ Based on this forensic evidence, determine if the image is AI-generated or manip
             result["processingTime"] = f"{time.time() - start_time:.2f}s"
             result["learnedPatternsUsed"] = len(patterns_used)
             result["patternsApplied"] = patterns_used
+            
+            # ========== SAVE TO SUPABASE ==========
+            try:
+                # Upload media to Supabase Storage
+                media_url = None
+                thumbnail_url = None
+                
+                try:
+                    media_url = upload_media(file_bytes, file.filename, file.content_type)
+                except Exception as upload_err:
+                    print(f"Media upload failed (non-fatal): {upload_err}")
+                
+                # Save analysis record to database
+                save_analysis({
+                    "type": "image",
+                    "preview": file.filename[:60] if file.filename else "Unknown",
+                    "media_url": media_url,
+                    "thumbnail_url": thumbnail_url,  # Generated client-side, not available here
+                    "result": result,
+                    "verdict": result.get("verdict"),
+                    "confidence": result.get("confidence", 0)
+                })
+            except Exception as db_err:
+                print(f"Supabase save failed (non-fatal): {db_err}")
+            
             return jsonify(result)
         
         return jsonify({"error": "Invalid AI response"}), 500
