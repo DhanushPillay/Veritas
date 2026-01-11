@@ -167,7 +167,7 @@ def verify_text():
         start_time = time.time()
         data = request.json
         text = data.get('text', '')
-        use_search = data.get('useSearch', False)
+        use_search = data.get('useSearch', True)  # Default to True (Always On Search)
         
         if not text:
             return jsonify({"error": "No text provided"}), 400

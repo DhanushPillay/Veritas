@@ -120,12 +120,8 @@
 
       <!-- Controls -->
       <div class="controls-row">
-        <div class="toggle-wrapper" id="searchToggle">
-          <div class="toggle" id="toggleSwitch">
-            <div class="toggle-knob"></div>
-          </div>
-          <span class="toggle-label">Web Search Provenance</span>
-        </div>
+        <!-- Search is now always active (Hidden UI) -->
+        <div style="flex-grow: 1;"></div>
 
         <div style="display: flex; align-items: center; gap: 1rem;">
           <p class="privacy-note">*Veritas processes data privately. Max 2GB.</p>
@@ -166,7 +162,7 @@
     const IndexPage = {
       activeTab: 'text',
       selectedFile: null,
-      useSearch: false,
+      useSearch: true, // Always on
 
       init() {
         this.bindEvents();
@@ -189,12 +185,6 @@
             document.getElementById('uploadText').textContent = this.selectedFile.name;
             this.updateButtonState();
           }
-        });
-
-        // Toggle search
-        document.getElementById('searchToggle').addEventListener('click', () => {
-          this.useSearch = !this.useSearch;
-          document.getElementById('toggleSwitch').classList.toggle('active', this.useSearch);
         });
 
         // Analyze button
@@ -268,8 +258,8 @@
           ? document.getElementById('textArea').value
           : this.selectedFile;
 
-        // Save input to localStorage
-        await Veritas.saveInput(this.activeTab, content, this.useSearch);
+        // Save input to localStorage, always use search
+        await Veritas.saveInput(this.activeTab, content, true);
 
         // Redirect to scanning page
         window.location.href = 'frontend/pages/scanning.html';
