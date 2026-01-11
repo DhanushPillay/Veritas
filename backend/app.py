@@ -15,7 +15,7 @@ from learning.supabase_db import (
     load_patterns, get_patterns_by_type, add_pattern, 
     format_patterns_for_prompt, get_stats, delete_pattern
 )
-from external.factcheck import FactCheckService, search_news_for_claim, search_web_context
+from external.factcheck import FactCheckService, search_news_for_claim, search_web_context, scrape_url_content
 from forensics.image_forensics import analyze_image_bytes
 from forensics.reverse_search import search_image
 from forensics.c2pa_detector import detect_c2pa
@@ -172,6 +172,23 @@ def verify_text():
         if not text:
             return jsonify({"error": "No text provided"}), 400
         
+        # Check if text is a URL
+        is_url = text.strip().startswith(('http://', 'https://'))
+        scraped_content = ""
+        
+        if is_url:
+            scraped_content = scrape_url_content(text.strip())
+            if scraped_content:
+                # Use scraped content for analysis, but keep URL as source
+                analysis_text = scraped_content
+                base_prompt = f"Fact-check the content of this article ({text}):\n\n{analysis_text[:2000]}..."
+            else:
+                analysis_text = text
+                base_prompt = f"Fact-check this link (I could not scrape it, so relying on search): {text}"
+        else:
+            analysis_text = text
+            base_prompt = f"Fact-check this text:\n\n{text}"
+        
         groq = get_client()
         system_prompt, patterns_used = build_prompt_with_patterns('text')
         
@@ -186,19 +203,20 @@ def verify_text():
             )
             return completion.choices[0].message.content
         
-        base_prompt = f"Fact-check this text:\n\n{text}"
-        
         factcheck_results = []
         news_results = []
         web_results = []
         
         if use_search:
             # 1. Run searches in parallel
+            # Create search query from text (first 200 chars or key terms)
+            search_query = analysis_text[:200]
+            
             with ThreadPoolExecutor(max_workers=4) as ex:
                 futures = {
-                    ex.submit(factcheck.search_claims, text[:200]): "fc",
-                    ex.submit(search_news_for_claim, text[:100]): "news",
-                    ex.submit(search_web_context, text[:200]): "web"
+                    ex.submit(factcheck.search_claims, search_query): "fc",
+                    ex.submit(search_news_for_claim, search_query[:100]): "news",
+                    ex.submit(search_web_context, search_query): "web"
                 }
                 
                 for f in as_completed(futures):

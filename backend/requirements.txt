@@ -9,3 +9,4 @@ pillow>=10.0.0
 python-dotenv>=1.0.0
 supabase>=2.0.0
 duckduckgo-search>=5.0.0
+beautifulsoup4>=4.12.0
