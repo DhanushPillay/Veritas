@@ -62,6 +62,7 @@ const ResultView = {
               <span class="gauge-value">${result.confidence}%</span>
               <span class="gauge-label">Trust</span>
             </div>
+          </div>
         </div>
       </div>`;
 

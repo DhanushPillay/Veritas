@@ -11,3 +11,7 @@ supabase>=2.0.0
 duckduckgo-search>=5.0.0
 beautifulsoup4
 supabase>=4.12.0
+
+# ML Text Detection
+torch>=2.0.0
+transformers>=4.35.0

@@ -24,6 +24,7 @@ from forensics.reverse_search import search_image
 from forensics.c2pa_detector import detect_c2pa
 from forensics.synthid_detector import detect_synthid
 from forensics.visual_detector import detect_visual_patterns
+from learning.text_detector import detect_ai_text, is_model_available
 
 # Initialize
 Config.validate()
@@ -281,6 +282,14 @@ def verify_text():
             if context:
                 base_prompt += f"\n\nSEARCH CONTEXT:{context}\nUse this context to verify the claim."
 
+        # 2.5. Run ML-based AI text detection (if model available)
+        ml_detection = None
+        if is_model_available():
+            try:
+                ml_detection = detect_ai_text(analysis_text)
+            except Exception as e:
+                print(f"ML text detection error: {e}")
+
         # 3. Run AI
         ai_response = run_ai(base_prompt)
         
@@ -306,6 +315,35 @@ def verify_text():
 
             if news_results:
                 result['relatedNews'] = news_results
+            
+            # Add ML-based text detection results
+            if ml_detection and not ml_detection.get('error'):
+                result['aiTextDetection'] = ml_detection
+                
+                # Boost confidence if ML model strongly indicates AI-generated
+                if ml_detection.get('is_ai') and ml_detection.get('confidence', 0) > 75:
+                    result['technicalDetails'] = result.get('technicalDetails', [])
+                    result['technicalDetails'].append({
+                        'label': 'ML Text Detection',
+                        'value': f"AI-Generated: {ml_detection['confidence']:.1f}% confidence",
+                        'status': 'fail',
+                        'explanation': 'Trained DistilBERT model detected AI writing patterns'
+                    })
+                    
+                    # Adjust verdict if ML is confident but AI says otherwise
+                    if result.get('verdict') == 'Authentic' and ml_detection['confidence'] > 85:
+                        result['verdict'] = 'Suspicious'
+                        result['mlOverride'] = 'ML model detected high probability of AI-generated content'
+                
+                elif not ml_detection.get('is_ai') and ml_detection.get('confidence', 0) > 75:
+                    result['technicalDetails'] = result.get('technicalDetails', [])
+                    result['technicalDetails'].append({
+                        'label': 'ML Text Detection',
+                        'value': f"Human-Written: {ml_detection['confidence']:.1f}% confidence",
+                        'status': 'pass',
+                        'explanation': 'Trained DistilBERT model indicates human writing patterns'
+                    })
+            
             result['processingTime'] = f"{time.time() - start_time:.2f}s"
             result['learnedPatternsUsed'] = len(patterns_used)
             result['patternsApplied'] = patterns_used
