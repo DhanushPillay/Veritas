@@ -387,6 +387,15 @@ body {
     /* Sharp focus ring */
 }
 
+.input-hint {
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 .upload-area {
     border: 2px dashed var(--border-light);
     border-radius: var(--radius-xl);

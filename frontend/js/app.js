@@ -5,7 +5,7 @@
 
 const App = {
   // State
-  activeTab: 'text',
+  activeTab: 'ai-detect',
   inputText: '',
   selectedFile: null,
   status: 'IDLE', // IDLE, ANALYZING, COMPLETED, ERROR
@@ -142,7 +142,8 @@ const App = {
   // Render tab buttons
   renderTabs() {
     const tabs = [
-      { id: 'text', label: 'Text Verification', icon: Icons.fileText() },
+      { id: 'ai-detect', label: 'AI Detection', icon: Icons.activity() },
+      { id: 'fact-check', label: 'Fact Check', icon: Icons.fileText() },
       { id: 'image', label: 'Image Analysis', icon: Icons.image() },
       { id: 'audio', label: 'Voice/Audio', icon: Icons.mic() },
       { id: 'video', label: 'Video Forensics', icon: Icons.video() }
@@ -170,14 +171,30 @@ const App = {
   // Render input card
   renderInputCard() {
     const fileText = this.selectedFile ? this.selectedFile.name : `Drop your ${this.activeTab} file here`;
+    const isTextTab = this.activeTab === 'ai-detect' || this.activeTab === 'fact-check';
+
+    // Different placeholders for each text mode
+    const placeholders = {
+      'ai-detect': 'Paste text to check if it was written by AI or a human...',
+      'fact-check': 'Paste a claim, article, or statement to verify its accuracy...'
+    };
+    const inputLabels = {
+      'ai-detect': 'Text to Analyze for AI Detection',
+      'fact-check': 'Claim or Statement to Fact-Check'
+    };
 
     return `
       <div class="input-card">
-        ${this.activeTab === 'text' ? `
-          <label class="input-label">Content to Analyze</label>
+        ${isTextTab ? `
+          <label class="input-label">${inputLabels[this.activeTab] || 'Content to Analyze'}</label>
           <textarea class="text-input" id="textInput" 
-                    placeholder="Paste article text, social media post, or statement here..."
+                    placeholder="${placeholders[this.activeTab] || 'Paste text here...'}"
                     oninput="App.inputText = this.value">${this.inputText}</textarea>
+          ${this.activeTab === 'ai-detect' ? `
+            <p class="input-hint">🧠 Uses your trained ML model to detect AI-generated text patterns.</p>
+          ` : `
+            <p class="input-hint">🔍 Searches the web and uses AI to verify claims and find sources.</p>
+          `}
         ` : `
           <label class="input-label">Upload Media Evidence</label>
           <div class="upload-area ${this.selectedFile ? 'has-file' : ''}">
@@ -189,12 +206,14 @@ const App = {
         `}
         
         <div class="controls-row">
-          <div class="toggle-wrapper" onclick="App.toggleSearch()">
-            <div class="toggle ${this.useSearch ? 'active' : ''}">
-              <div class="toggle-knob"></div>
+          ${this.activeTab === 'fact-check' ? `
+            <div class="toggle-wrapper" onclick="App.toggleSearch()">
+              <div class="toggle ${this.useSearch ? 'active' : ''}">
+                <div class="toggle-knob"></div>
+              </div>
+              <span class="toggle-label">Web Search Provenance</span>
             </div>
-            <span class="toggle-label">Web Search Provenance</span>
-          </div>
+          ` : '<div></div>'}
           
           <div style="display: flex; align-items: center; gap: 1rem;">
             <p class="privacy-note">*Veritas processes data privately. Max 2GB.</p>
@@ -202,7 +221,7 @@ const App = {
                     ${this.isInputEmpty() || this.cooldown > 0 ? 'disabled' : ''}>
               ${this.cooldown > 0
         ? `<span>Wait ${this.cooldown}s</span>`
-        : `${Icons.activity()} Run Analysis`}
+        : `${Icons.activity()} ${this.activeTab === 'ai-detect' ? 'Detect AI' : 'Run Analysis'}`}
             </button>
           </div>
         </div>
@@ -217,7 +236,8 @@ const App = {
 
   // Check if input is empty
   isInputEmpty() {
-    return this.activeTab === 'text' ? !this.inputText : !this.selectedFile;
+    const isTextTab = this.activeTab === 'ai-detect' || this.activeTab === 'fact-check';
+    return isTextTab ? !this.inputText : !this.selectedFile;
   },
 
   // Handle file selection

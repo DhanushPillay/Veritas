@@ -527,6 +527,65 @@ def verify_text():
         return jsonify({"error": str(e)}), 500
 
 
+# ========== AI TEXT DETECTION (SEPARATE FROM FACT-CHECK) ==========
+
+@app.route('/api/detect/ai-text', methods=['POST'])
+def detect_ai_text_endpoint():
+    """
+    Pure AI text detection - checks if text is AI-generated or human-written.
+    Does NOT do fact-checking. Uses only the ML model.
+    """
+    import time
+    
+    try:
+        start_time = time.time()
+        data = request.json
+        text = data.get('text', '')
+        
+        if not text:
+            return jsonify({"error": "No text provided"}), 400
+        
+        if not is_model_available():
+            return jsonify({"error": "ML model not available"}), 503
+        
+        # Run ML detection
+        ml_result = detect_ai_text(text)
+        
+        if ml_result.get('error'):
+            return jsonify({"error": ml_result['error']}), 500
+        
+        # Build response
+        is_ai = ml_result.get('is_ai', False)
+        confidence = ml_result.get('confidence', 0)
+        
+        result = {
+            "type": "ai_detection",
+            "verdict": "AI-Generated" if is_ai else "Human-Written",
+            "confidence": confidence,
+            "isAiGenerated": is_ai,
+            "probabilities": ml_result.get('probabilities', {}),
+            "summary": f"This text is {'likely AI-generated' if is_ai else 'likely human-written'} with {confidence:.1f}% confidence.",
+            "reasoning": [
+                f"ML model detected {'AI' if is_ai else 'human'} writing patterns",
+                f"Confidence: {confidence:.1f}%",
+                f"Human probability: {ml_result.get('probabilities', {}).get('human', 0):.1f}%",
+                f"AI probability: {ml_result.get('probabilities', {}).get('ai_generated', 0):.1f}%"
+            ],
+            "technicalDetails": [{
+                "label": "ML Text Detection",
+                "value": f"{'AI-Generated' if is_ai else 'Human-Written'}: {confidence:.1f}%",
+                "status": "fail" if is_ai else "pass",
+                "explanation": "Trained DistilBERT model analysis"
+            }],
+            "processingTime": f"{time.time() - start_time:.2f}s"
+        }
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 # ========== IMAGE VERIFICATION ==========
 
 @app.route('/api/verify/image', methods=['POST'])

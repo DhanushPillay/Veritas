@@ -62,15 +62,25 @@ const GroqService = {
 
     // Verify via Python backend
     async verifyViaBackend(type, content, useSearch, userGuidelines) {
-        const endpoint = `${this.BACKEND_URL}/api/verify/${type}`;
+        // Map tab types to backend endpoints
+        let endpoint;
+        if (type === 'ai-detect') {
+            endpoint = `${this.BACKEND_URL}/api/detect/ai-text`;
+        } else if (type === 'fact-check') {
+            endpoint = `${this.BACKEND_URL}/api/verify/text`;
+        } else {
+            endpoint = `${this.BACKEND_URL}/api/verify/${type}`;
+        }
 
-        if (type === 'text') {
+        const isTextType = type === 'ai-detect' || type === 'fact-check';
+
+        if (isTextType) {
             const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     text: content,
-                    useSearch,
+                    useSearch: type === 'fact-check' ? useSearch : false,
                     userGuidelines
                 })
             });
