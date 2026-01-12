@@ -410,29 +410,48 @@ def verify_text():
             # Add ML-based text detection results
             if ml_detection and not ml_detection.get('error'):
                 result['aiTextDetection'] = ml_detection
+                ml_conf = ml_detection.get('confidence', 0)
+                is_ai = ml_detection.get('is_ai')
                 
-                # Boost confidence if ML model strongly indicates AI-generated
-                if ml_detection.get('is_ai') and ml_detection.get('confidence', 0) > 75:
-                    result['technicalDetails'] = result.get('technicalDetails', [])
+                result['technicalDetails'] = result.get('technicalDetails', [])
+                
+                # ML MODEL IS PRIMARY AUTHORITY FOR AI DETECTION
+                # Override Groq's verdict when ML has high confidence
+                if ml_conf > 80:
+                    if is_ai:
+                        # ML says AI-generated with high confidence
+                        result['technicalDetails'].append({
+                            'label': 'ML Text Detection',
+                            'value': f"AI-Generated: {ml_conf:.1f}% confidence",
+                            'status': 'fail',
+                            'explanation': 'Trained DistilBERT model detected AI writing patterns'
+                        })
+                        # Override verdict to match ML
+                        if result.get('verdict') not in ['AI-Generated', 'Suspicious']:
+                            result['verdict'] = 'AI-Generated'
+                            result['mlOverride'] = 'ML model detected AI-generated content with high confidence'
+                    else:
+                        # ML says Human-written with high confidence
+                        result['technicalDetails'].append({
+                            'label': 'ML Text Detection',
+                            'value': f"Human-Written: {ml_conf:.1f}% confidence",
+                            'status': 'pass',
+                            'explanation': 'Trained DistilBERT model indicates human writing patterns'
+                        })
+                        # Override verdict to Authentic if Groq said AI-Generated
+                        if result.get('verdict') == 'AI-Generated':
+                            result['verdict'] = 'Authentic'
+                            result['confidence'] = max(result.get('confidence', 50), int(ml_conf))
+                            result['mlOverride'] = 'ML model detected human-written content with high confidence'
+                else:
+                    # ML has low confidence - add as supplementary info only
+                    status = 'fail' if is_ai else 'pass'
+                    label_text = f"{'AI-Generated' if is_ai else 'Human-Written'}: {ml_conf:.1f}% (low confidence)"
                     result['technicalDetails'].append({
                         'label': 'ML Text Detection',
-                        'value': f"AI-Generated: {ml_detection['confidence']:.1f}% confidence",
-                        'status': 'fail',
-                        'explanation': 'Trained DistilBERT model detected AI writing patterns'
-                    })
-                    
-                    # Adjust verdict if ML is confident but AI says otherwise
-                    if result.get('verdict') == 'Authentic' and ml_detection['confidence'] > 85:
-                        result['verdict'] = 'Suspicious'
-                        result['mlOverride'] = 'ML model detected high probability of AI-generated content'
-                
-                elif not ml_detection.get('is_ai') and ml_detection.get('confidence', 0) > 75:
-                    result['technicalDetails'] = result.get('technicalDetails', [])
-                    result['technicalDetails'].append({
-                        'label': 'ML Text Detection',
-                        'value': f"Human-Written: {ml_detection['confidence']:.1f}% confidence",
-                        'status': 'pass',
-                        'explanation': 'Trained DistilBERT model indicates human writing patterns'
+                        'value': label_text,
+                        'status': 'warn',
+                        'explanation': 'ML model confidence is low - result may not be reliable'
                     })
             
             result['processingTime'] = f"{time.time() - start_time:.2f}s"
