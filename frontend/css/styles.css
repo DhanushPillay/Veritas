@@ -2591,3 +2591,117 @@ body {
         transform: translateY(0);
     }
 }
+
+/* ============================================
+   ENSEMBLE DISPLAY STYLES
+   ============================================ */
+
+.ensemble-breakdown {
+    display: flex;
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.ensemble-source {
+    flex: 1;
+    background: var(--bg-deep);
+    border-radius: var(--radius-lg);
+    padding: 0.75rem 1rem;
+}
+
+.source-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.source-icon {
+    font-size: 1rem;
+}
+
+.source-name {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    flex: 1;
+}
+
+.source-weight {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    background: var(--bg-panel);
+    padding: 0.15rem 0.5rem;
+    border-radius: var(--radius-full);
+}
+
+.source-bar {
+    height: 6px;
+    background: var(--bg-panel);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    margin-bottom: 0.25rem;
+}
+
+.source-bar-fill {
+    height: 100%;
+    border-radius: var(--radius-full);
+    transition: width 0.5s ease-out;
+}
+
+.source-value {
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.source-value.ai {
+    color: #ef4444;
+}
+
+.source-value.human {
+    color: #10b981;
+}
+
+.ensemble-result {
+    margin: 1rem 0;
+}
+
+.result-bar {
+    display: flex;
+    height: 32px;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: var(--bg-deep);
+}
+
+.result-human {
+    background: linear-gradient(90deg, #10b981, #14b8a6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: width 0.5s ease-out;
+    min-width: 40px;
+}
+
+.result-ai {
+    background: linear-gradient(90deg, #ef4444, #f97316);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: width 0.5s ease-out;
+    min-width: 40px;
+}
+
+.result-human span,
+.result-ai span {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+@media (max-width: 600px) {
+    .ensemble-breakdown {
+        flex-direction: column;
+    }
+}

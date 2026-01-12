@@ -407,52 +407,89 @@ def verify_text():
             if news_results:
                 result['relatedNews'] = news_results
             
-            # Add ML-based text detection results
+            # ========== ENSEMBLE: MERGE GROQ + ML MODEL ==========
+            # Combine both signals for a unified verdict
             if ml_detection and not ml_detection.get('error'):
                 result['aiTextDetection'] = ml_detection
                 ml_conf = ml_detection.get('confidence', 0)
-                is_ai = ml_detection.get('is_ai')
+                ml_is_ai = ml_detection.get('is_ai', False)
                 
+                # Get Groq's opinion (convert verdict to AI probability)
+                groq_verdict = result.get('verdict', 'Inconclusive')
+                groq_conf = result.get('confidence', 50)
+                
+                # Convert Groq verdict to "is_ai" probability (0-100)
+                if groq_verdict in ['AI-Generated', 'Suspicious']:
+                    groq_ai_prob = groq_conf
+                elif groq_verdict == 'Authentic':
+                    groq_ai_prob = 100 - groq_conf
+                else:  # Inconclusive
+                    groq_ai_prob = 50
+                
+                # ML model's AI probability
+                ml_ai_prob = ml_conf if ml_is_ai else (100 - ml_conf)
+                
+                # ENSEMBLE: Weighted average (ML: 60%, Groq: 40%)
+                # ML model is specialized for AI detection, so it gets more weight
+                ML_WEIGHT = 0.6
+                GROQ_WEIGHT = 0.4
+                
+                combined_ai_prob = (ml_ai_prob * ML_WEIGHT) + (groq_ai_prob * GROQ_WEIGHT)
+                
+                # Determine final verdict based on combined probability
+                if combined_ai_prob >= 70:
+                    final_verdict = 'AI-Generated'
+                    final_confidence = int(combined_ai_prob)
+                elif combined_ai_prob <= 30:
+                    final_verdict = 'Authentic'
+                    final_confidence = int(100 - combined_ai_prob)
+                else:
+                    final_verdict = 'Inconclusive'
+                    final_confidence = 50 + abs(int(combined_ai_prob - 50))
+                
+                # Update result with ensemble verdict
+                result['verdict'] = final_verdict
+                result['confidence'] = final_confidence
+                
+                # Add ensemble details
+                result['ensemble'] = {
+                    'ml_weight': f"{int(ML_WEIGHT * 100)}%",
+                    'groq_weight': f"{int(GROQ_WEIGHT * 100)}%",
+                    'ml_ai_probability': round(ml_ai_prob, 1),
+                    'groq_ai_probability': round(groq_ai_prob, 1),
+                    'combined_ai_probability': round(combined_ai_prob, 1),
+                    'explanation': f"Combined score: {combined_ai_prob:.0f}% AI probability (ML: {ml_ai_prob:.0f}%, Groq: {groq_ai_prob:.0f}%)"
+                }
+                
+                # Technical details
                 result['technicalDetails'] = result.get('technicalDetails', [])
                 
-                # ML MODEL IS PRIMARY AUTHORITY FOR AI DETECTION
-                # Override Groq's verdict when ML has high confidence
-                if ml_conf > 80:
-                    if is_ai:
-                        # ML says AI-generated with high confidence
-                        result['technicalDetails'].append({
-                            'label': 'ML Text Detection',
-                            'value': f"AI-Generated: {ml_conf:.1f}% confidence",
-                            'status': 'fail',
-                            'explanation': 'Trained DistilBERT model detected AI writing patterns'
-                        })
-                        # Override verdict to match ML
-                        if result.get('verdict') not in ['AI-Generated', 'Suspicious']:
-                            result['verdict'] = 'AI-Generated'
-                            result['mlOverride'] = 'ML model detected AI-generated content with high confidence'
-                    else:
-                        # ML says Human-written with high confidence
-                        result['technicalDetails'].append({
-                            'label': 'ML Text Detection',
-                            'value': f"Human-Written: {ml_conf:.1f}% confidence",
-                            'status': 'pass',
-                            'explanation': 'Trained DistilBERT model indicates human writing patterns'
-                        })
-                        # Override verdict to Authentic if Groq said AI-Generated
-                        if result.get('verdict') == 'AI-Generated':
-                            result['verdict'] = 'Authentic'
-                            result['confidence'] = max(result.get('confidence', 50), int(ml_conf))
-                            result['mlOverride'] = 'ML model detected human-written content with high confidence'
-                else:
-                    # ML has low confidence - add as supplementary info only
-                    status = 'fail' if is_ai else 'pass'
-                    label_text = f"{'AI-Generated' if is_ai else 'Human-Written'}: {ml_conf:.1f}% (low confidence)"
-                    result['technicalDetails'].append({
-                        'label': 'ML Text Detection',
-                        'value': label_text,
-                        'status': 'warn',
-                        'explanation': 'ML model confidence is low - result may not be reliable'
-                    })
+                # ML contribution
+                ml_status = 'fail' if ml_is_ai else 'pass'
+                result['technicalDetails'].append({
+                    'label': 'ML Model (60% weight)',
+                    'value': f"{'AI' if ml_is_ai else 'Human'}: {ml_conf:.1f}% confident",
+                    'status': ml_status,
+                    'explanation': f"Trained DistilBERT model - contributes {ml_ai_prob:.0f}% to AI score"
+                })
+                
+                # Groq contribution
+                groq_status = 'fail' if groq_verdict in ['AI-Generated', 'Suspicious'] else 'pass'
+                result['technicalDetails'].append({
+                    'label': 'Groq AI (40% weight)',
+                    'value': f"{groq_verdict}: {groq_conf}% confident",
+                    'status': groq_status,
+                    'explanation': f"LLM analysis - contributes {groq_ai_prob:.0f}% to AI score"
+                })
+                
+                # Combined result
+                combined_status = 'fail' if final_verdict == 'AI-Generated' else ('pass' if final_verdict == 'Authentic' else 'warn')
+                result['technicalDetails'].append({
+                    'label': 'Ensemble Result',
+                    'value': f"{final_verdict} ({final_confidence}% confidence)",
+                    'status': combined_status,
+                    'explanation': f"Weighted combination: {combined_ai_prob:.0f}% AI probability"
+                })
             
             result['processingTime'] = f"{time.time() - start_time:.2f}s"
             result['learnedPatternsUsed'] = len(patterns_used)

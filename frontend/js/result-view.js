@@ -97,8 +97,71 @@ const ResultView = {
         </div>`;
     }
 
-    // AI Text Detection Results (prominent display for text type)
-    if (type === 'text' && result.aiTextDetection) {
+    // AI Text Detection Results - ENSEMBLE VIEW
+    if (type === 'text' && result.ensemble) {
+      const ensemble = result.ensemble;
+      const combinedProb = ensemble.combined_ai_probability;
+      const mlProb = ensemble.ml_ai_probability;
+      const groqProb = ensemble.groq_ai_probability;
+      const isAI = combinedProb >= 50;
+      const aiColor = isAI ? '#ef4444' : '#10b981';
+      const humanProb = 100 - combinedProb;
+
+      html += `
+        <div class="ai-detection-card ${isAI ? 'ai-detected' : 'human-detected'}">
+          <div class="ai-detection-header">
+            <h3>${isAI ? '🤖 AI-Generated Text' : '👤 Human-Written Text'}</h3>
+            <div class="ai-confidence" style="--ai-color: ${aiColor}">
+              <span class="ai-conf-value">${result.confidence}%</span>
+              <span class="ai-conf-label">Ensemble</span>
+            </div>
+          </div>
+          
+          <div class="ensemble-breakdown">
+            <div class="ensemble-source">
+              <div class="source-header">
+                <span class="source-icon">🧠</span>
+                <span class="source-name">ML Model</span>
+                <span class="source-weight">${ensemble.ml_weight}</span>
+              </div>
+              <div class="source-bar">
+                <div class="source-bar-fill" style="width: ${mlProb}%; background: ${mlProb >= 50 ? '#ef4444' : '#10b981'}"></div>
+              </div>
+              <span class="source-value ${mlProb >= 50 ? 'ai' : 'human'}">${mlProb.toFixed(0)}% AI</span>
+            </div>
+            
+            <div class="ensemble-source">
+              <div class="source-header">
+                <span class="source-icon">💬</span>
+                <span class="source-name">Groq AI</span>
+                <span class="source-weight">${ensemble.groq_weight}</span>
+              </div>
+              <div class="source-bar">
+                <div class="source-bar-fill" style="width: ${groqProb}%; background: ${groqProb >= 50 ? '#ef4444' : '#10b981'}"></div>
+              </div>
+              <span class="source-value ${groqProb >= 50 ? 'ai' : 'human'}">${groqProb.toFixed(0)}% AI</span>
+            </div>
+          </div>
+          
+          <div class="ensemble-result">
+            <div class="result-bar">
+              <div class="result-human" style="width: ${humanProb}%">
+                <span>👤 ${humanProb.toFixed(0)}%</span>
+              </div>
+              <div class="result-ai" style="width: ${combinedProb}%">
+                <span>🤖 ${combinedProb.toFixed(0)}%</span>
+              </div>
+            </div>
+          </div>
+          
+          <p class="ai-detection-note">
+            ${isAI
+          ? `⚠️ Combined analysis: ${combinedProb.toFixed(0)}% probability of AI-generated content.`
+          : `✅ Combined analysis: ${humanProb.toFixed(0)}% probability of human-written content.`}
+          </p>
+        </div>`;
+    } else if (type === 'text' && result.aiTextDetection) {
+      // Fallback for when ensemble isn't available
       const aiResult = result.aiTextDetection;
       const isAI = aiResult.is_ai;
       const confidence = aiResult.confidence;
