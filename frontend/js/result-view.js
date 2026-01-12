@@ -1,8 +1,3 @@
-/**
- * VERITAS - Result View Module
- * Handles rendering of verification results
- */
-
 const ResultView = {
   currentResult: null,
   mediaThumbnail: null,
@@ -75,6 +70,63 @@ const ResultView = {
             <h4>Manual Review Recommended</h4>
             <p>The system could not definitively verify this media. Low resolution, compression, or ambiguous features may have affected analysis.</p>
           </div>
+        </div>`;
+    }
+
+    // Analysis Type Badge (shows what type of analysis was performed)
+    if (result.analysisType) {
+      const typeLabels = {
+        'fact_check': { icon: '🔍', label: 'Fact Check', color: '#3b82f6' },
+        'ai_detection': { icon: '🤖', label: 'AI Detection', color: '#8b5cf6' },
+        'both': { icon: '⚡', label: 'Full Analysis', color: '#10b981' }
+      };
+      const typeInfo = typeLabels[result.analysisType.primary] || typeLabels.both;
+
+      html += `
+        <div class="analysis-type-section">
+          <div class="analysis-type-badge" style="--badge-color: ${typeInfo.color}">
+            <span class="type-icon">${typeInfo.icon}</span>
+            <span class="type-label">${typeInfo.label}</span>
+          </div>
+          <p class="type-reason">${result.analysisType.reason}</p>
+          ${result.analysisType.indicators?.length ? `
+            <div class="type-indicators">
+              ${result.analysisType.indicators.map(i => `<span class="indicator-chip">${i}</span>`).join('')}
+            </div>
+          ` : ''}
+        </div>`;
+    }
+
+    // AI Text Detection Results (prominent display for text type)
+    if (type === 'text' && result.aiTextDetection) {
+      const aiResult = result.aiTextDetection;
+      const isAI = aiResult.is_ai;
+      const confidence = aiResult.confidence;
+      const aiColor = isAI ? '#ef4444' : '#10b981';
+      const aiLabel = isAI ? '🤖 AI-Generated Text' : '👤 Human-Written Text';
+
+      html += `
+        <div class="ai-detection-card ${isAI ? 'ai-detected' : 'human-detected'}">
+          <div class="ai-detection-header">
+            <h3>${aiLabel}</h3>
+            <div class="ai-confidence" style="--ai-color: ${aiColor}">
+              <span class="ai-conf-value">${confidence.toFixed(1)}%</span>
+              <span class="ai-conf-label">ML Confidence</span>
+            </div>
+          </div>
+          <div class="ai-detection-bar">
+            <div class="ai-bar-label">Human</div>
+            <div class="ai-bar-container">
+              <div class="ai-bar-human" style="width: ${aiResult.probabilities?.human || 0}%"></div>
+              <div class="ai-bar-ai" style="width: ${aiResult.probabilities?.ai_generated || 0}%"></div>
+            </div>
+            <div class="ai-bar-label">AI</div>
+          </div>
+          <p class="ai-detection-note">
+            ${isAI
+          ? '⚠️ This text shows patterns consistent with AI-generated content.'
+          : '✅ This text appears to be written by a human.'}
+          </p>
         </div>`;
     }
 

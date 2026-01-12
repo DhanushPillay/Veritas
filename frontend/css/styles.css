@@ -2402,3 +2402,192 @@ body {
     background: var(--danger-bg);
     color: var(--danger);
 }
+
+/* ============================================
+   ANALYSIS TYPE & AI DETECTION STYLES
+   ============================================ */
+
+/* Analysis Type Section */
+.analysis-type-section {
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: var(--radius-xl);
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+}
+
+.analysis-type-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: rgba(var(--badge-color), 0.15);
+    border: 1px solid var(--badge-color);
+    border-radius: var(--radius-full);
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--badge-color);
+}
+
+.type-icon {
+    font-size: 1.1rem;
+}
+
+.type-reason {
+    flex: 1;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.type-indicators {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    width: 100%;
+    margin-top: 0.5rem;
+}
+
+.indicator-chip {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+/* AI Detection Card */
+.ai-detection-card {
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(16px);
+    border-radius: var(--radius-xl);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+    overflow: hidden;
+    animation: slideInUp 0.5s ease-out;
+}
+
+.ai-detection-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+}
+
+.ai-detection-card.ai-detected {
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    box-shadow: 0 0 40px -10px rgba(239, 68, 68, 0.2);
+}
+
+.ai-detection-card.ai-detected::before {
+    background: linear-gradient(90deg, #ef4444, #f97316, #fbbf24);
+}
+
+.ai-detection-card.human-detected {
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    box-shadow: 0 0 40px -10px rgba(16, 185, 129, 0.2);
+}
+
+.ai-detection-card.human-detected::before {
+    background: linear-gradient(90deg, #10b981, #14b8a6, #06b6d4);
+}
+
+.ai-detection-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+}
+
+.ai-detection-header h3 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.ai-confidence {
+    text-align: center;
+}
+
+.ai-conf-value {
+    display: block;
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--ai-color);
+    line-height: 1;
+}
+
+.ai-conf-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+}
+
+/* AI Detection Bar */
+.ai-detection-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.ai-bar-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    width: 3rem;
+    text-align: center;
+}
+
+.ai-bar-container {
+    flex: 1;
+    height: 8px;
+    background: var(--bg-deep);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    display: flex;
+}
+
+.ai-bar-human {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981, #14b8a6);
+    transition: width 0.5s ease-out;
+}
+
+.ai-bar-ai {
+    height: 100%;
+    background: linear-gradient(90deg, #ef4444, #f97316);
+    transition: width 0.5s ease-out;
+}
+
+.ai-detection-note {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin: 0;
+    padding: 0.75rem 1rem;
+    background: var(--bg-deep);
+    border-radius: var(--radius-lg);
+}
+
+@keyframes slideInUp {
+    0% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

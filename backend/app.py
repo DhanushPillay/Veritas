@@ -197,6 +197,94 @@ def delete_history_item(record_id):
         return jsonify({"error": str(e)}), 500
 
 
+# ========== TEXT INTENT DETECTION ==========
+
+def detect_text_intent(text: str) -> dict:
+    """
+    Auto-detect what type of analysis the text needs.
+    Returns: {
+        'primary': 'fact_check' | 'ai_detection' | 'both',
+        'reason': str,
+        'indicators': list
+    }
+    """
+    text_lower = text.lower().strip()
+    word_count = len(text.split())
+    
+    indicators = []
+    
+    # --- Fact-check indicators ---
+    fact_check_score = 0
+    
+    # Questions typically need fact-checking
+    if text_lower.endswith('?') or text_lower.startswith(('is ', 'are ', 'was ', 'were ', 'did ', 'does ', 'do ', 'can ', 'could ', 'will ', 'would ', 'should ', 'has ', 'have ', 'what ', 'when ', 'where ', 'who ', 'why ', 'how ')):
+        fact_check_score += 3
+        indicators.append("Question detected")
+    
+    # Claims with specific entities (numbers, dates, names)
+    import re
+    if re.search(r'\d{4}', text):  # Years
+        fact_check_score += 1
+        indicators.append("Contains dates/years")
+    if re.search(r'\d+%|\d+ percent', text_lower):  # Percentages
+        fact_check_score += 2
+        indicators.append("Contains statistics")
+    if re.search(r'"[^"]+"', text):  # Quoted text
+        fact_check_score += 2
+        indicators.append("Contains quotes")
+    
+    # Claim keywords
+    claim_keywords = ['claimed', 'stated', 'said', 'according to', 'reported', 'announced', 'confirmed', 'denied', 'true', 'false', 'fake', 'real', 'myth', 'fact']
+    if any(kw in text_lower for kw in claim_keywords):
+        fact_check_score += 2
+        indicators.append("Contains claim language")
+    
+    # --- AI detection indicators ---
+    ai_detection_score = 0
+    
+    # Long-form content (articles, essays)
+    if word_count > 150:
+        ai_detection_score += 3
+        indicators.append("Long-form content")
+    elif word_count > 50:
+        ai_detection_score += 1
+        indicators.append("Medium-length content")
+    
+    # Essay/article patterns
+    if any(phrase in text_lower for phrase in ['in conclusion', 'furthermore', 'moreover', 'in summary', 'to summarize', 'in this article', 'this essay']):
+        ai_detection_score += 2
+        indicators.append("Essay/article structure")
+    
+    # Generic/placeholder language (AI often uses)
+    generic_patterns = ['it is important to note', 'it is worth noting', 'one could argue', 'it can be said', 'in today\'s world', 'in the modern era']
+    if any(p in text_lower for p in generic_patterns):
+        ai_detection_score += 2
+        indicators.append("Generic AI-like phrasing")
+    
+    # --- Determine primary intent ---
+    if fact_check_score >= 3 and ai_detection_score < 2:
+        return {
+            'primary': 'fact_check',
+            'reason': 'Text appears to be a claim or question needing verification',
+            'indicators': indicators,
+            'scores': {'fact_check': fact_check_score, 'ai_detection': ai_detection_score}
+        }
+    elif ai_detection_score >= 3 and fact_check_score < 2:
+        return {
+            'primary': 'ai_detection',
+            'reason': 'Text appears to be content that should be checked for AI authorship',
+            'indicators': indicators,
+            'scores': {'fact_check': fact_check_score, 'ai_detection': ai_detection_score}
+        }
+    else:
+        return {
+            'primary': 'both',
+            'reason': 'Text needs both fact-checking and AI detection analysis',
+            'indicators': indicators,
+            'scores': {'fact_check': fact_check_score, 'ai_detection': ai_detection_score}
+        }
+
+
 # ========== TEXT VERIFICATION ==========
 
 @app.route('/api/verify/text', methods=['POST'])
@@ -212,6 +300,9 @@ def verify_text():
         
         if not text:
             return jsonify({"error": "No text provided"}), 400
+        
+        # Auto-detect what type of analysis is needed
+        intent = detect_text_intent(text)
         
         # Check if text is a URL
         is_url = text.strip().startswith(('http://', 'https://'))
@@ -347,6 +438,32 @@ def verify_text():
             result['processingTime'] = f"{time.time() - start_time:.2f}s"
             result['learnedPatternsUsed'] = len(patterns_used)
             result['patternsApplied'] = patterns_used
+            
+            # Add intent analysis info for clear UI display
+            result['analysisType'] = {
+                'primary': intent['primary'],
+                'reason': intent['reason'],
+                'indicators': intent['indicators']
+            }
+            
+            # Structure results clearly by type
+            result['analysisResults'] = {
+                'factCheck': {
+                    'enabled': intent['primary'] in ['fact_check', 'both'],
+                    'verdict': result.get('verdict'),
+                    'confidence': result.get('confidence'),
+                    'summary': result.get('summary'),
+                    'sources': result.get('sources', []),
+                    'factCheckSummary': result.get('factCheckSummary')
+                },
+                'aiDetection': {
+                    'enabled': intent['primary'] in ['ai_detection', 'both'],
+                    'result': ml_detection if ml_detection and not ml_detection.get('error') else None,
+                    'isAiGenerated': ml_detection.get('is_ai') if ml_detection else None,
+                    'confidence': ml_detection.get('confidence') if ml_detection else None
+                }
+            }
+            
             return jsonify(result)
         
         return jsonify({"error": "Invalid response"}), 500
