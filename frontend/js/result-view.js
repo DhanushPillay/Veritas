@@ -193,52 +193,15 @@ const ResultView = {
         </div>`;
     }
 
-    // Results Grid
-    html += '<div class="results-grid">';
-
-    // Left Column - Findings
-    html += `
-      <div class="findings-column">
-        <section class="section-card">
-          <h3 class="section-title">Executive Summary</h3>
-          <p class="summary-text">${result.summary}</p>
-        </section>
-        <section class="section-card" style="margin-top: 1.5rem;">
-          <h3 class="section-title">Key Findings</h3>
-          <ul class="findings-list">
-            ${result.reasoning.map(r => `<li>${r}</li>`).join('')}
-          </ul>
-        </section>
-        ${this.renderRiskScore(result)}
-        ${this.renderReverseSearch(result)}
-      </div>`;
-
-    // Right Column - Technical Details
-    html += `
-      <div class="tech-column">
-        <section class="section-card">
-          <h3 class="section-title">Technical Analysis</h3>
-          <div id="techDetails">
-            ${this.renderTechDetails(result.technicalDetails)}
-          </div>
-        </section>`;
-
-    // Sources
-    if (result.sources && result.sources.length > 0) {
-      html += `
-        <section class="section-card" style="margin-top: 1rem;">
-          <h3 class="section-title">Verified Sources</h3>
-          <ul class="sources-list">
-            ${result.sources.map(s => `<li><a href="${s.uri}" target="_blank">${s.title || s.uri}</a></li>`).join('')}
-          </ul>
-        </section>`;
+    // SIMPLIFIED FACT-CHECK VIEW
+    if (type === 'fact-check') {
+      html += this.renderFactCheckResult(result);
+    } else {
+      // Original detailed view for other types
+      html += this.renderDetailedResult(result, type);
     }
 
-    html += `
-        <button class="btn-secondary" onclick="App.resetAnalysis()">Start New Analysis</button>
-      </div>`;
-
-    html += '</div>'; // End results-grid
+    html += '</div>'; // End results-container
 
     // Feedback Section
     html += `
@@ -311,6 +274,169 @@ const ResultView = {
     ).join(' ') : ''}
         </div>
       </section>`;
+  },
+
+  // SIMPLIFIED FACT-CHECK RESULT VIEW
+  renderFactCheckResult(result) {
+    let html = '<div class="fact-check-result">';
+
+    // Article Info (if URL was provided)
+    if (result.articleInfo) {
+      html += `
+        <section class="article-info-card">
+          <div class="article-source">
+            <span class="source-icon">📰</span>
+            <div>
+              <h4 class="article-title">${result.articleInfo.title || 'Article'}</h4>
+              <p class="article-meta">
+                <span class="publisher">${result.articleInfo.publisher || 'Unknown source'}</span>
+                ${result.articleInfo.publishDate ? `<span class="date"> • ${result.articleInfo.publishDate}</span>` : ''}
+              </p>
+            </div>
+          </div>
+          <a href="${result.articleInfo.url}" target="_blank" class="article-link">View Original</a>
+        </section>`;
+    }
+
+    // Summary Section
+    html += `
+      <section class="section-card summary-card">
+        <h3 class="section-title">Summary</h3>
+        <p class="summary-text">${result.summary}</p>
+      </section>`;
+
+    // Key Findings (simplified)
+    if (result.reasoning && result.reasoning.length > 0) {
+      html += `
+        <section class="section-card">
+          <h3 class="section-title">Key Findings</h3>
+          <ul class="findings-list simple">
+            ${result.reasoning.slice(0, 5).map(r => `<li>${r}</li>`).join('')}
+          </ul>
+        </section>`;
+    }
+
+    // Verification Sources
+    html += `
+      <section class="section-card sources-card">
+        <h3 class="section-title">Verification Sources</h3>
+        <p class="sources-intro">Information was cross-referenced from:</p>
+        <div class="verification-sources">`;
+
+    // Fact Check Results
+    if (result.factCheckResults && result.factCheckResults.length > 0) {
+      html += `
+        <div class="source-group">
+          <h4 class="source-group-title">Fact-Check Organizations</h4>
+          <ul class="source-list">
+            ${result.factCheckResults.slice(0, 3).map(fc => `
+              <li>
+                <a href="${fc.url}" target="_blank">${fc.title || fc.claim}</a>
+                <span class="rating ${fc.rating?.toLowerCase().includes('true') ? 'true' : 'false'}">${fc.rating}</span>
+                <span class="publisher">${fc.publisher}</span>
+              </li>
+            `).join('')}
+          </ul>
+        </div>`;
+    }
+
+    // News Sources
+    if (result.relatedNews && result.relatedNews.length > 0) {
+      html += `
+        <div class="source-group">
+          <h4 class="source-group-title">Related News Articles</h4>
+          <ul class="source-list">
+            ${result.relatedNews.slice(0, 3).map(news => `
+              <li>
+                <a href="${news.url}" target="_blank">${news.title}</a>
+                <span class="publisher">${news.source}</span>
+              </li>
+            `).join('')}
+          </ul>
+        </div>`;
+    }
+
+    // Web Sources
+    if (result.sources && result.sources.length > 0) {
+      html += `
+        <div class="source-group">
+          <h4 class="source-group-title">Web References</h4>
+          <ul class="source-list">
+            ${result.sources.slice(0, 3).map(s => `
+              <li>
+                <a href="${s.uri}" target="_blank">${s.title || s.uri}</a>
+              </li>
+            `).join('')}
+          </ul>
+        </div>`;
+    }
+
+    // No sources found
+    if (!result.factCheckResults?.length && !result.relatedNews?.length && !result.sources?.length) {
+      html += `
+        <p class="no-sources">No external verification sources were found. The analysis is based on AI reasoning.</p>`;
+    }
+
+    html += `
+        </div>
+      </section>`;
+
+    // New Analysis Button
+    html += `
+      <button class="btn-secondary" onclick="App.resetAnalysis()">Start New Analysis</button>
+    </div>`;
+
+    return html;
+  },
+
+  // DETAILED RESULT VIEW (for image, video, audio, ai-detect)
+  renderDetailedResult(result, type) {
+    let html = '<div class="results-grid">';
+
+    // Left Column - Findings
+    html += `
+      <div class="findings-column">
+        <section class="section-card">
+          <h3 class="section-title">Summary</h3>
+          <p class="summary-text">${result.summary}</p>
+        </section>
+        <section class="section-card" style="margin-top: 1.5rem;">
+          <h3 class="section-title">Key Findings</h3>
+          <ul class="findings-list">
+            ${result.reasoning ? result.reasoning.map(r => `<li>${r}</li>`).join('') : '<li>No specific findings</li>'}
+          </ul>
+        </section>
+        ${this.renderRiskScore(result)}
+        ${this.renderReverseSearch(result)}
+      </div>`;
+
+    // Right Column - Technical Details
+    html += `
+      <div class="tech-column">
+        <section class="section-card">
+          <h3 class="section-title">Technical Analysis</h3>
+          <div id="techDetails">
+            ${this.renderTechDetails(result.technicalDetails || [])}
+          </div>
+        </section>`;
+
+    // Sources
+    if (result.sources && result.sources.length > 0) {
+      html += `
+        <section class="section-card" style="margin-top: 1rem;">
+          <h3 class="section-title">Verified Sources</h3>
+          <ul class="sources-list">
+            ${result.sources.map(s => `<li><a href="${s.uri}" target="_blank">${s.title || s.uri}</a></li>`).join('')}
+          </ul>
+        </section>`;
+    }
+
+    html += `
+        <button class="btn-secondary" onclick="App.resetAnalysis()">Start New Analysis</button>
+      </div>`;
+
+    html += '</div>'; // End results-grid
+    return html;
   },
 
   // Render technical details with expandable sections

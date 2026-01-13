@@ -414,6 +414,7 @@ INSTRUCTIONS:
                 boost = factcheck.get_credibility_boost(factcheck_results)
                 sources.extend([{'title': f"{fc['publisher']}: {fc['rating']}", 'uri': fc['url']} for fc in factcheck_results])
                 result['factCheckSummary'] = boost['summary']
+                result['factCheckResults'] = factcheck_results  # For simplified view
             
             if web_results:
                 # Add web results to sources
