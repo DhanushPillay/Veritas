@@ -117,19 +117,30 @@ const Veritas = {
         console.warn('Use deleteHistoryItem to remove individual items');
     },
 
-    // ========== API CALLS ==========
-
     /**
      * Call backend API for verification
      */
     async verify(type, content, useSearch = false) {
-        const endpoint = `${this.BACKEND_URL}/api/verify/${type}`;
+        // Route to correct endpoint based on type
+        let endpoint;
+        if (type === 'ai-detect') {
+            endpoint = `${this.BACKEND_URL}/api/detect/ai-text`;
+        } else if (type === 'fact-check') {
+            endpoint = `${this.BACKEND_URL}/api/verify/text`;
+        } else {
+            endpoint = `${this.BACKEND_URL}/api/verify/${type}`;
+        }
 
-        if (type === 'text') {
+        const isTextType = type === 'ai-detect' || type === 'fact-check';
+
+        if (isTextType) {
             const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: content, useSearch })
+                body: JSON.stringify({
+                    text: content,
+                    useSearch: type === 'fact-check' ? useSearch : false
+                })
             });
 
             if (!response.ok) {

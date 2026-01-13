@@ -52,7 +52,14 @@
 
     <!-- Tabs -->
     <div class="tabs" id="tabs">
-      <button class="tab-btn active" data-type="text">
+      <button class="tab-btn active" data-type="ai-detect">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          width="18" height="18">
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+        </svg>
+        <span>AI Detection</span>
+      </button>
+      <button class="tab-btn" data-type="fact-check">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
           width="18" height="18">
           <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
@@ -61,7 +68,7 @@
           <path d="M16 13H8" />
           <path d="M16 17H8" />
         </svg>
-        <span>Text Verification</span>
+        <span>Fact Check</span>
       </button>
       <button class="tab-btn" data-type="image">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -194,7 +201,7 @@
   <script>
     // ========== INDEX PAGE LOGIC ==========
     const IndexPage = {
-      activeTab: 'text',
+      activeTab: 'ai-detect',
       selectedFile: null,
       useSearch: true, // Always on
       stepInterval: null,
@@ -299,9 +306,20 @@
         });
 
         // Toggle input sections
-        const isText = type === 'text';
-        document.getElementById('textInput').classList.toggle('hidden', !isText);
-        document.getElementById('fileInput').classList.toggle('hidden', isText);
+        const isTextType = type === 'ai-detect' || type === 'fact-check';
+        document.getElementById('textInput').classList.toggle('hidden', !isTextType);
+        document.getElementById('fileInput').classList.toggle('hidden', isTextType);
+
+        // Update label and placeholder based on tab
+        const label = document.querySelector('#textInput .input-label');
+        const textarea = document.getElementById('textArea');
+        if (type === 'ai-detect') {
+          label.textContent = 'Text to Analyze for AI Detection';
+          textarea.placeholder = 'Paste text to check if it was written by AI or a human...';
+        } else if (type === 'fact-check') {
+          label.textContent = 'Claim or Statement to Fact-Check';
+          textarea.placeholder = 'Paste a claim, article, or statement to verify its accuracy...';
+        }
 
         // Update file accept types
         const acceptTypes = { image: 'image/*', video: 'video/*', audio: 'audio/*' };
@@ -315,7 +333,8 @@
         const btn = document.getElementById('analyzeBtn');
         let hasInput = false;
 
-        if (this.activeTab === 'text') {
+        const isTextType = this.activeTab === 'ai-detect' || this.activeTab === 'fact-check';
+        if (isTextType) {
           hasInput = document.getElementById('textArea').value.trim().length > 0;
         } else {
           hasInput = this.selectedFile !== null;
