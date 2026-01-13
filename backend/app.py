@@ -1,8 +1,3 @@
-"""
-VERITAS - Flask Backend API
-Clean, modular API server
-"""
-
 import os
 import json
 import tempfile

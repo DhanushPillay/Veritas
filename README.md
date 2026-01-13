@@ -1,100 +1,212 @@
-# Veritas - Detect Fake Media with AI
+# VERITAS - AI-Powered Media Verification System
 
-**Veritas** helps you figure out if a photo, video, audio, or text is real or fake. It uses artificial intelligence to spot deepfakes, AI-generated images, and misleading content.
+<div align="center">
 
----
+![Veritas Logo](https://img.shields.io/badge/VERITAS-Media_Verification-blue?style=for-the-badge&logo=shield)
+![Python](https://img.shields.io/badge/Python-3.10+-green?style=flat-square&logo=python)
+![Flask](https://img.shields.io/badge/Flask-Backend-red?style=flat-square&logo=flask)
+![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)
 
-## What Does Veritas Do?
+**Detect deepfakes, AI-generated content, and misinformation with advanced AI forensics.**
 
-### 🖼️ Check Images
-Upload any image and Veritas will tell you:
-- Is this a real photo or AI-generated?
-- Has someone edited or manipulated this image?
-- Are there signs of Photoshop or other editing tools?
-- Does the lighting and shadows look natural?
-
-**How it works**: The AI looks for tiny mistakes that fake images often have - like weird hands, blurry text, or lighting that doesn't match.
+</div>
 
 ---
 
-### 🎥 Check Videos
-Upload a video to detect deepfakes:
-- Is the face in the video real or pasted on?
-- Do the lips match what the person is saying?
-- Does the face move naturally or does it glitch?
+## 🎯 Features
 
-**How it works**: The AI watches the video frame by frame, looking for unnatural face movements or audio that doesn't sync with the mouth.
+### 🤖 AI Text Detection (NEW!)
+- **Custom-trained ML model** using DistilBERT
+- Detects AI-generated vs human-written text
+- 60/40 ensemble combining ML model + Groq AI
+- Separate dedicated tab for fast detection
 
----
+### 🔍 Fact Checking
+- Verifies claims using web search + AI analysis
+- Finds sources and cross-references information
+- Uses Groq's LLaMA 4 for reasoning
 
-### � Check Audio
-Upload an audio file to detect voice cloning:
-- Is this a real human voice or AI-generated?
-- Are there signs of audio editing or splicing?
-- Does the voice have natural breathing and pauses?
+### 🖼️ Image Analysis
+- Detects AI-generated images and deepfakes
+- Error Level Analysis (ELA) forensics
+- C2PA, SynthID watermark detection
+- Reverse image search integration
 
-**How it works**: Real voices have tiny imperfections - breaths, pauses, background noise. Fake voices are often "too perfect" or have robotic patterns.
+### 🎥 Video Forensics
+- Frame-by-frame deepfake detection
+- Lip-sync analysis
+- Face manipulation detection
 
----
-
-### � Check Text
-Paste any text to detect AI writing:
-- Was this written by a human or ChatGPT/AI?
-- Are there patterns typical of AI-generated text?
-- Is the content logically consistent?
-
-**How it works**: AI-written text often has repetitive patterns, overuses certain phrases, and lacks the natural variation of human writing.
-
----
-
-## How the Trust Score Works
-
-After analysis, you get a **Trust Score** from 0-100%:
-
-| Score | Meaning |
-|-------|---------|
-| 80-100% | **Authentic** - Very likely real |
-| 50-79% | **Suspicious** - Some warning signs found |
-| 0-49% | **Fake/Generated** - Likely AI-made or manipulated |
-
-The system also shows you exactly WHY it made its decision - like "Face pixels don't match" or "Unnatural word patterns detected".
+### 🎤 Audio Analysis
+- Voice cloning detection
+- Speech-to-text transcription (Whisper)
+- Audio splicing identification
 
 ---
 
-## Web Search Feature
+## 🏗️ Architecture
 
-When you enable **Web Search Provenance**, Veritas also:
-- Searches the internet to see if this image appeared before
-- Checks if this content was already flagged as fake
-- Finds the original source if it was copied from somewhere
-
----
-
-## The AI Learning System
-
-Veritas gets smarter over time. When it makes a mistake, you can tell it:
-- "This was actually real" or "This was actually fake"
-- The AI remembers these corrections
-- Next time it sees similar content, it does better
-
----
-
-## Important: Veritas is a Tool, Not a Judge
-
-⚠️ **Please Remember:**
-- Veritas uses AI predictions - it can be wrong sometimes
-- Always double-check important findings with other sources
-- Don't use this as the only evidence for serious decisions
-- It's a helpful first step, not the final answer
-
----
-
-## Who Should Use Veritas?
-
-- **Journalists** - Verify images and videos before publishing
-- **Researchers** - Study patterns in fake content
-- **Regular People** - Check suspicious posts on social media
-- **Organizations** - Screen content for authenticity
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      FRONTEND (Vanilla JS)                  │
+│  ┌──────────┐ ┌────────────┐ ┌───────┐ ┌───────┐ ┌───────┐ │
+│  │AI Detect │ │ Fact Check │ │ Image │ │ Audio │ │ Video │ │
+│  └────┬─────┘ └─────┬──────┘ └───┬───┘ └───┬───┘ └───┬───┘ │
+└───────┼─────────────┼────────────┼─────────┼─────────┼─────┘
+        │             │            │         │         │
+        ▼             ▼            ▼         ▼         ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   FLASK BACKEND (Python)                    │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │              API ENDPOINTS                           │   │
+│  │  /api/detect/ai-text  →  ML Model Only (Fast)       │   │
+│  │  /api/verify/text     →  Ensemble (ML + Groq)       │   │
+│  │  /api/verify/image    →  Forensics + Groq           │   │
+│  │  /api/verify/audio    →  Whisper + Analysis         │   │
+│  │  /api/verify/video    →  Frame Analysis + Groq      │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  ┌───────────────┐  ┌───────────────┐  ┌────────────────┐  │
+│  │ Your Trained  │  │   Groq API    │  │   Forensics    │  │
+│  │ DistilBERT    │  │   (LLaMA 4)   │  │   (ELA, C2PA)  │  │
+│  │ (Local Model) │  │   (Remote)    │  │   (Local)      │  │
+│  └───────────────┘  └───────────────┘  └────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ---
 
+## 🚀 Quick Start
+
+### Prerequisites
+- Python 3.10+
+- Node.js (optional, for development)
+- Groq API Key (free at [console.groq.com](https://console.groq.com))
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/DhanushPillay/Veritas.git
+cd Veritas
+
+# Create virtual environment
+python -m venv .venv
+.venv\Scripts\activate  # Windows
+source .venv/bin/activate  # Linux/Mac
+
+# Install dependencies
+pip install -r backend/requirements.txt
+
+# Configure environment
+cp backend/.env.example backend/.env
+# Edit .env and add your GROQ_API_KEY
+```
+
+### Run the Application
+
+```bash
+cd backend
+python app.py
+```
+
+Open `http://localhost:5000` in your browser.
+
+---
+
+## 🧠 ML Models
+
+### Custom-Trained Model (Text Detection)
+| Model | Base | Dataset | Purpose |
+|-------|------|---------|---------|
+| `veritas_text_detector` | DistilBERT | ai-text-detection-pile | AI vs Human text |
+
+### Groq API Models (Pre-trained)
+| Model | Purpose | Trainable |
+|-------|---------|-----------|
+| LLaMA 4 Scout 17B | Text & Image reasoning | ❌ |
+| Whisper Large v3 Turbo | Audio transcription | ❌ |
+
+---
+
+## 📁 Project Structure
+
+```
+Veritas/
+├── backend/
+│   ├── app.py                 # Main Flask application
+│   ├── config.py              # Configuration and API keys
+│   ├── forensics/             # Image forensics tools
+│   │   ├── c2pa_detector.py   # C2PA watermark detection
+│   │   ├── synthid_detector.py# SynthID detection
+│   │   └── visual_detector.py # Visual pattern analysis
+│   ├── learning/
+│   │   └── text_detector.py   # Custom ML text detection
+│   └── services/              # External API integrations
+├── frontend/
+│   ├── css/styles.css         # Premium dark theme
+│   ├── js/
+│   │   ├── app.js             # Main application logic
+│   │   ├── gemini-service.js  # API service layer
+│   │   └── result-view.js     # Results rendering
+│   └── pages/                 # HTML pages
+├── veritas_text_detector/     # Trained ML model files
+│   ├── model.safetensors      # Model weights (Git LFS)
+│   ├── config.json            # Model configuration
+│   └── tokenizer.json         # Tokenizer
+└── training/                  # Training scripts
+```
+
+---
+
+## 🔧 API Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/detect/ai-text` | POST | Pure AI text detection (ML only) |
+| `/api/verify/text` | POST | Fact-checking with ensemble |
+| `/api/verify/image` | POST | Image deepfake detection |
+| `/api/verify/audio` | POST | Audio analysis |
+| `/api/verify/video` | POST | Video forensics |
+| `/api/learn` | POST | Submit feedback for learning |
+| `/api/health` | GET | Health check |
+
+---
+
+## 📊 How the Trust Score Works
+
+| Score | Verdict | Meaning |
+|-------|---------|---------|
+| 70-100% | **Authentic** | Very likely real/human-made |
+| 31-69% | **Inconclusive** | Mixed signals, manual review needed |
+| 0-30% | **AI-Generated** | Likely fake or AI-made |
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+---
+
+## ⚠️ Disclaimer
+
+Veritas is an AI-powered tool that provides **probabilistic predictions**, not absolute truth. Always:
+- Double-check important findings with other sources
+- Don't use as sole evidence for serious decisions
+- Consider it a helpful first step, not the final answer
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+---
+
+<div align="center">
+
+**Built with ❤️ by Dhanush Pillay**
+
+</div>
