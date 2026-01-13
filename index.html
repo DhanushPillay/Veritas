@@ -45,7 +45,7 @@
 
   <!-- Main Content -->
   <main class="main-container">
-    <div class="hero">
+    <div class="hero" id="heroSection">
       <h1>Verify Reality in Real-Time</h1>
       <p>Advanced AI forensics to detect deepfakes, synthetic voices, and generated text with precision.</p>
     </div>
@@ -223,6 +223,9 @@
         document.getElementById('inputCard').style.display = 'flex';
         document.getElementById('tabs').style.display = 'flex';
 
+        // Show hero section
+        document.getElementById('heroSection').style.display = 'block';
+
         // Reset state
         this.selectedFile = null;
         document.getElementById('textArea').value = '';
@@ -234,6 +237,9 @@
       showResults(result, thumbnail) {
         // Hide Scanning
         document.getElementById('scanningContainer').style.display = 'none';
+
+        // Hide hero section
+        document.getElementById('heroSection').style.display = 'none';
 
         // Show Results Container & Background
         const resultsContainer = document.getElementById('resultsContainer');
