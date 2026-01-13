@@ -344,7 +344,8 @@
       },
 
       async startAnalysis() {
-        const content = this.activeTab === 'text'
+        const isTextType = this.activeTab === 'ai-detect' || this.activeTab === 'fact-check';
+        const content = isTextType
           ? document.getElementById('textArea').value
           : this.selectedFile;
 
@@ -361,7 +362,7 @@
         try {
           // Run analysis (using shared.js API call directly)
           let thumbnail = null;
-          if (this.activeTab !== 'text') {
+          if (!isTextType) {
             thumbnail = await Veritas.generateThumbnail(this.selectedFile, this.activeTab);
           }
 
@@ -374,7 +375,7 @@
           // Save lightweight record to history (avoiding large objects in localStorage)
           Veritas.addToHistory({
             type: this.activeTab,
-            preview: this.activeTab === 'text' ? (content.substring(0, 60) + '...') : this.selectedFile.name,
+            preview: isTextType ? (content.substring(0, 60) + '...') : this.selectedFile.name,
             thumbnail,
             result: {
               verdict: result.verdict,
@@ -398,13 +399,14 @@
       getSteps(type, useSearch) {
         const steps = ['Initializing forensic protocols...'];
         const typeSteps = {
-          text: ['Analyzing linguistic patterns...', 'Checking logical consistency...', 'Detecting LLM generation markers...'],
+          'ai-detect': ['Loading ML model...', 'Analyzing text patterns...', 'Detecting AI writing markers...'],
+          'fact-check': ['Scraping article content...', 'Analyzing claims...', 'Searching fact-check databases...'],
           image: ['Scanning EXIF metadata...', 'Running Error Level Analysis...', 'Checking shadow coherence...', 'Detecting AI artifacts...'],
           audio: ['Generating spectral analysis...', 'Detecting voice cloning...', 'Analyzing breathing patterns...'],
           video: ['Extracting keyframes...', 'Checking audio-visual sync...', 'Analyzing temporal consistency...', 'Detecting face manipulation...']
         };
         steps.push(...(typeSteps[type] || []));
-        if (useSearch) {
+        if (useSearch && type === 'fact-check') {
           steps.push('Connecting to global index...', 'Cross-referencing sources...');
         }
         steps.push('Compiling final verdict...');
