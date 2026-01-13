@@ -10,7 +10,7 @@ from learning.supabase_db import (
     load_patterns, get_patterns_by_type, add_pattern, 
     format_patterns_for_prompt, get_stats, delete_pattern
 )
-from external.factcheck import FactCheckService, search_news_for_claim, search_web_context, scrape_url_content
+from external.factcheck import FactCheckService, search_news_for_claim, search_web_context, scrape_url_content, scrape_article_details
 from external.supabase_client import (
     upload_media, delete_media, save_analysis, get_history, get_analysis, delete_analysis
 )
@@ -302,19 +302,42 @@ def verify_text():
         # Check if text is a URL
         is_url = text.strip().startswith(('http://', 'https://'))
         scraped_content = ""
+        article_info = None
         
         if is_url:
-            scraped_content = scrape_url_content(text.strip())
-            if scraped_content:
-                # Use scraped content for analysis, but keep URL as source
-                analysis_text = scraped_content
-                base_prompt = f"Fact-check the content of this article ({text}):\n\n{analysis_text[:2000]}..."
+            # Use enhanced article scraping for URLs
+            article_info = scrape_article_details(text.strip())
+            
+            if article_info.get('success'):
+                analysis_text = article_info.get('content', '')
+                base_prompt = f"""FACT-CHECK THIS ARTICLE:
+
+Source: {article_info.get('publisher', 'Unknown')}
+Title: {article_info.get('title', 'Unknown')}
+Published: {article_info.get('publish_date', 'Unknown')}
+URL: {text}
+
+ARTICLE CONTENT:
+{analysis_text[:2500]}
+
+INSTRUCTIONS:
+1. Identify the main claims made in this article
+2. Cross-reference these claims with the search context provided
+3. Determine if the article is factually accurate, misleading, or false
+4. Consider the credibility of the source ({article_info.get('publisher', 'Unknown')})
+5. Provide a verdict on the reliability of this news article"""
             else:
-                analysis_text = text
-                base_prompt = f"Fact-check this link (I could not scrape it, so relying on search): {text}"
+                # Fallback to basic scraping
+                scraped_content = scrape_url_content(text.strip())
+                if scraped_content:
+                    analysis_text = scraped_content
+                    base_prompt = f"Fact-check the content of this article ({text}):\n\n{analysis_text[:2000]}..."
+                else:
+                    analysis_text = text
+                    base_prompt = f"Fact-check this link (I could not scrape it, so relying on search): {text}"
         else:
             analysis_text = text
-            base_prompt = f"Fact-check this text:\n\n{text}"
+            base_prompt = f"Fact-check this claim or statement:\n\n{text}"
         
         groq = get_client()
         system_prompt, patterns_used = build_prompt_with_patterns('text')
@@ -496,6 +519,25 @@ def verify_text():
                 'reason': intent['reason'],
                 'indicators': intent['indicators']
             }
+            
+            # Add URL/article info if applicable
+            if is_url and article_info and article_info.get('success'):
+                result['articleInfo'] = {
+                    'isUrl': True,
+                    'url': text.strip(),
+                    'title': article_info.get('title'),
+                    'publisher': article_info.get('publisher'),
+                    'publishDate': article_info.get('publish_date'),
+                    'domain': article_info.get('domain')
+                }
+            elif is_url:
+                result['articleInfo'] = {
+                    'isUrl': True,
+                    'url': text.strip(),
+                    'title': 'Could not extract article details',
+                    'publisher': 'Unknown',
+                    'publishDate': 'Unknown'
+                }
             
             # Structure results clearly by type
             result['analysisResults'] = {

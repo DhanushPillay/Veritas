@@ -215,3 +215,85 @@ def scrape_url_content(url: str) -> str:
     except Exception as e:
         print(f"Scraping error: {e}")
         return ""
+
+
+def scrape_article_details(url: str) -> Dict:
+    """
+    Extract detailed article information from a URL.
+    Returns title, source, date, and content for fact-checking.
+    """
+    try:
+        from bs4 import BeautifulSoup
+        from urllib.parse import urlparse
+        
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+        
+        response = requests.get(url, headers=headers, timeout=15)
+        if response.status_code != 200:
+            return {"error": f"Failed to fetch URL (status {response.status_code})"}
+            
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        # Extract title
+        title = ""
+        if soup.title:
+            title = soup.title.string or ""
+        og_title = soup.find("meta", property="og:title")
+        if og_title:
+            title = og_title.get("content", title)
+            
+        # Extract source/publisher
+        domain = urlparse(url).netloc.replace("www.", "")
+        publisher = domain
+        og_site = soup.find("meta", property="og:site_name")
+        if og_site:
+            publisher = og_site.get("content", publisher)
+            
+        # Extract publish date
+        publish_date = ""
+        date_meta = soup.find("meta", property="article:published_time")
+        if date_meta:
+            publish_date = date_meta.get("content", "")
+        if not publish_date:
+            time_tag = soup.find("time")
+            if time_tag:
+                publish_date = time_tag.get("datetime", time_tag.get_text())
+                
+        # Extract main content
+        article_content = ""
+        
+        # Try common article containers
+        article = soup.find("article")
+        if article:
+            for tag in article(["script", "style", "nav", "aside"]):
+                tag.decompose()
+            article_content = article.get_text(separator="\n", strip=True)
+        else:
+            # Fallback: get all paragraphs
+            paragraphs = soup.find_all("p")
+            article_content = "\n".join([p.get_text(strip=True) for p in paragraphs])
+        
+        # Clean up content
+        lines = [line.strip() for line in article_content.split("\n") if len(line.strip()) > 30]
+        article_content = "\n".join(lines[:50])  # Limit to first 50 meaningful lines
+        
+        return {
+            "url": url,
+            "title": title.strip()[:200] if title else "Unknown Title",
+            "publisher": publisher,
+            "publish_date": publish_date[:30] if publish_date else "Unknown Date",
+            "content": article_content[:4000],  # Limit content length
+            "domain": domain,
+            "success": True
+        }
+        
+    except Exception as e:
+        print(f"Article scraping error: {e}")
+        return {
+            "url": url,
+            "error": str(e),
+            "success": False
+        }
+
