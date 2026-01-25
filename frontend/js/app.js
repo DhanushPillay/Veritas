@@ -25,7 +25,8 @@ const elements = {
   sidebar: document.getElementById('sidebar'),
   sidebarToggle: document.getElementById('sidebarToggle'),
   chatContainer: document.getElementById('chatContainer'),
-  themeToggle: document.getElementById('themeToggle')
+  themeToggle: document.getElementById('themeToggle'),
+  searchInput: document.getElementById('searchInput')
 };
 
 // ========== API ==========
@@ -392,10 +393,22 @@ function autoResizeTextarea() {
 
 // ========== CONVERSATION MANAGEMENT ==========
 
-function renderConversationList() {
+function renderConversationList(searchTerm = '') {
   elements.conversationList.innerHTML = '';
 
-  state.conversations.forEach(conv => {
+  // Filter conversations by search term
+  const filteredConversations = searchTerm
+    ? state.conversations.filter(conv =>
+      conv.title.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    : state.conversations;
+
+  if (filteredConversations.length === 0 && searchTerm) {
+    elements.conversationList.innerHTML = '<div class="no-results">No conversations found</div>';
+    return;
+  }
+
+  filteredConversations.forEach(conv => {
     const item = document.createElement('button');
     item.className = `conversation-item ${conv.id === state.currentConversationId ? 'active' : ''}`;
     item.innerHTML = `
@@ -643,6 +656,13 @@ document.addEventListener('click', (e) => {
     }
   }
 });
+
+// Search input listener
+if (elements.searchInput) {
+  elements.searchInput.addEventListener('input', (e) => {
+    renderConversationList(e.target.value);
+  });
+}
 
 document.addEventListener('keydown', handleGlobalKeydown);
 

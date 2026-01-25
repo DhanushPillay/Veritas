@@ -12,17 +12,29 @@
 
 ---
 
-## Features
+## ✨ Features
 
-- 💬 **Real-time Chat** - Fast responses powered by Groq API
+### Chat
+- 💬 **Streaming Responses** - Real-time typing effect
 - 🧠 **Conversation Memory** - Maintains context within sessions
-- 🌙 **Dark Theme** - Modern ChatGPT-inspired UI
-- 📱 **Responsive Design** - Works on desktop and mobile
-- ✨ **Markdown Support** - Code blocks, lists, and formatting
+- ✏️ **Message Editing** - Edit and regenerate responses
+- 🔄 **Regenerate** - Retry any response
+- ⏹️ **Stop Generation** - Cancel mid-response (Esc key)
+
+### UI/UX
+- 🌙 **Dark/Light Theme** - Toggle with persistence
+- 🔍 **Search Conversations** - Filter your chat history
+- 📋 **Copy Code** - One-click copy with syntax highlighting  
+- 📤 **Export Chat** - Download as Markdown
+- ⌨️ **Keyboard Shortcuts** - Ctrl+N, Esc, Ctrl+Shift+C
+
+### Storage
+- 💾 **Persistent Storage** - Supabase integration (optional)
+- 🗄️ **Memory Fallback** - Works without database
 
 ---
 
-## Quick Start
+## 🚀 Quick Start
 
 ### Prerequisites
 - Python 3.10+
@@ -44,8 +56,7 @@ source .venv/bin/activate  # Linux/Mac
 pip install -r backend/requirements.txt
 
 # Configure environment
-cp backend/.env.example backend/.env
-# Edit .env and add your GROQ_API_KEY
+# Edit backend/.env and add your GROQ_API_KEY
 ```
 
 ### Run
@@ -55,49 +66,92 @@ cd backend
 python app.py
 ```
 
-Open `http://localhost:5000` in your browser.
+Open http://localhost:5000 in your browser.
 
 ---
 
-## Project Structure
+## ⌨️ Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Enter` | Send message |
+| `Shift + Enter` | New line |
+| `Ctrl + N` | New chat |
+| `Esc` | Stop generation |
+| `Ctrl + Shift + C` | Copy last response |
+
+---
+
+## 📁 Project Structure
 
 ```
 Veritas/
 ├── backend/
 │   ├── app.py           # Flask API server
 │   ├── config.py        # Configuration
+│   ├── database.py      # Supabase client
 │   ├── requirements.txt # Dependencies
 │   └── .env             # API keys (create this)
 ├── frontend/
-│   ├── css/styles.css   # Dark theme styling
+│   ├── css/styles.css   # Dark/Light theme styling
 │   └── js/app.js        # Chat functionality
 └── index.html           # Main page
 ```
 
 ---
 
-## API Endpoints
+## 🔌 API Endpoints
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/chat` | POST | Send message, get response |
+| `/api/chat` | POST | Send message (supports streaming) |
 | `/api/conversations` | GET | List all conversations |
 | `/api/conversations/<id>` | GET | Get conversation history |
+| `/api/conversations/<id>` | PUT | Update conversation |
 | `/api/conversations/<id>` | DELETE | Delete conversation |
 | `/api/health` | GET | Health check |
 
 ---
 
-## Tech Stack
+## 🔧 Configuration
 
-- **Backend**: Flask + Groq API (LLaMA 4)
-- **Frontend**: Vanilla HTML/CSS/JS
-- **Styling**: Custom CSS with CSS Variables
-- **Markdown**: Marked.js
+Create `backend/.env`:
+
+```env
+GROQ_API_KEY=your_groq_api_key
+
+# Optional: Supabase for persistent storage
+SUPABASE_URL=your_supabase_url
+SUPABASE_KEY=your_supabase_key
+```
+
+### Supabase Setup (Optional)
+
+Create a `conversations` table:
+
+```sql
+CREATE TABLE conversations (
+  id UUID PRIMARY KEY,
+  title TEXT,
+  messages JSONB,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+```
 
 ---
 
-## License
+## 🛠️ Tech Stack
+
+- **Backend**: Flask + Groq API (LLaMA 4)
+- **Frontend**: Vanilla HTML/CSS/JS
+- **Styling**: CSS Variables (Dark/Light themes)
+- **Markdown**: Marked.js
+- **Syntax Highlighting**: Highlight.js
+- **Database**: Supabase (optional)
+
+---
+
+## 📜 License
 
 MIT License
 
