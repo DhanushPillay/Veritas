@@ -773,3 +773,65 @@ body {
     background: var(--code-bg);
     color: #24292e;
 }
+
+/* ========== EDIT MESSAGE FORM ========== */
+.edit-form {
+    margin-top: 8px;
+}
+
+.edit-textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 12px;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 15px;
+    line-height: 1.5;
+    resize: vertical;
+    transition: border-color var(--transition-fast);
+}
+
+.edit-textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.edit-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.edit-save-btn,
+.edit-cancel-btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.edit-save-btn {
+    background-color: var(--accent);
+    border: none;
+    color: white;
+}
+
+.edit-save-btn:hover {
+    background-color: var(--accent-hover);
+}
+
+.edit-cancel-btn {
+    background: none;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+}
+
+.edit-cancel-btn:hover {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+}

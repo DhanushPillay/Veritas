@@ -192,7 +192,20 @@ function addMessage(role, content, isStreaming = false) {
   messageDiv.dataset.role = role;
 
   const avatar = role === 'user' ? 'U' : 'V';
-  const actionsHtml = role === 'assistant' ? `
+
+  // User messages get edit button, assistant messages get copy/regenerate
+  const userActionsHtml = `
+        <div class="message-actions">
+            <button class="action-btn edit-message-btn" title="Edit message">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+            </button>
+        </div>
+    `;
+
+  const assistantActionsHtml = `
         <div class="message-actions">
             <button class="action-btn copy-message-btn" title="Copy message">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -207,7 +220,9 @@ function addMessage(role, content, isStreaming = false) {
                 </svg>
             </button>
         </div>
-    ` : '';
+    `;
+
+  const actionsHtml = role === 'user' ? userActionsHtml : assistantActionsHtml;
 
   messageDiv.innerHTML = `
         <div class="message-content">
@@ -230,6 +245,11 @@ function addMessage(role, content, isStreaming = false) {
   const regenBtn = messageDiv.querySelector('.regenerate-btn');
   if (regenBtn) {
     regenBtn.addEventListener('click', () => regenerateResponse(messageDiv));
+  }
+
+  const editBtn = messageDiv.querySelector('.edit-message-btn');
+  if (editBtn) {
+    editBtn.addEventListener('click', () => editMessage(messageDiv));
   }
 
   elements.messagesContainer.appendChild(messageDiv);
@@ -285,6 +305,73 @@ async function regenerateResponse(messageDiv) {
 
   // Send the message again
   await handleNewMessage(userMessage);
+}
+
+function editMessage(messageDiv) {
+  const textElement = messageDiv.querySelector('.message-text');
+  const currentText = textElement.textContent.trim();
+
+  // Create edit form
+  const editForm = document.createElement('div');
+  editForm.className = 'edit-form';
+  editForm.innerHTML = `
+    <textarea class="edit-textarea">${escapeHtml(currentText)}</textarea>
+    <div class="edit-actions">
+      <button type="button" class="edit-save-btn">Save & Submit</button>
+      <button type="button" class="edit-cancel-btn">Cancel</button>
+    </div>
+  `;
+
+  // Hide the text and show edit form
+  textElement.style.display = 'none';
+  messageDiv.querySelector('.message-body').insertBefore(editForm, textElement.nextSibling);
+
+  const textarea = editForm.querySelector('.edit-textarea');
+  textarea.focus();
+  textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+
+  // Auto-resize
+  textarea.style.height = 'auto';
+  textarea.style.height = textarea.scrollHeight + 'px';
+
+  textarea.addEventListener('input', () => {
+    textarea.style.height = 'auto';
+    textarea.style.height = textarea.scrollHeight + 'px';
+  });
+
+  // Cancel button
+  editForm.querySelector('.edit-cancel-btn').addEventListener('click', () => {
+    editForm.remove();
+    textElement.style.display = '';
+  });
+
+  // Save button
+  editForm.querySelector('.edit-save-btn').addEventListener('click', async () => {
+    const newText = textarea.value.trim();
+    if (!newText) return;
+
+    // Find this message's index and remove all messages after it
+    const messages = elements.messagesContainer.querySelectorAll('.message');
+    let foundIndex = -1;
+
+    for (let i = 0; i < messages.length; i++) {
+      if (messages[i] === messageDiv) {
+        foundIndex = i;
+        break;
+      }
+    }
+
+    if (foundIndex >= 0) {
+      // Remove all messages from this one onwards
+      for (let i = messages.length - 1; i >= foundIndex; i--) {
+        messages[i].remove();
+      }
+    }
+
+    // Add the edited message and get new response
+    addMessage('user', newText);
+    await handleNewMessage(newText);
+  });
 }
 
 function updateSendButton() {

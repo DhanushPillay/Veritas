@@ -1,16 +1,27 @@
 """
 Veritas Chatbot - Flask Backend
-A simple ChatGPT-like chatbot powered by Groq's LLaMA 4
+A ChatGPT-like chatbot powered by Groq's LLaMA 4
 """
 
 import os
 import json
 import uuid
+from datetime import datetime
 from flask import Flask, request, jsonify, Response, stream_with_context
 from flask_cors import CORS
 from groq import Groq
 
 from config import Config
+
+# Try to import database module (optional Supabase)
+try:
+    from database import (
+        is_supabase_available, save_conversation, get_conversation as db_get_conversation,
+        get_all_conversations, delete_conversation as db_delete_conversation, clear_all_conversations
+    )
+    USE_DATABASE = True
+except ImportError:
+    USE_DATABASE = False
 
 # Validate configuration
 Config.validate()
@@ -36,9 +47,14 @@ def get_client():
     return client
 
 
-# In-memory conversation storage
-# Structure: {conversation_id: {id, title, messages: [{role, content}], created_at}}
-conversations = {}
+# In-memory conversation storage (fallback if no database)
+# Structure: {conversation_id: {id, title, messages: [{role, content}], updated_at}}
+memory_conversations = {}
+
+
+def use_persistent_storage():
+    """Check if we should use persistent storage"""
+    return USE_DATABASE and is_supabase_available()
 
 
 # ========== FRONTEND ROUTES ==========
@@ -57,7 +73,8 @@ def health():
     return jsonify({
         "status": "ok",
         "model": Config.MODEL,
-        "conversations": len(conversations)
+        "database": "supabase" if use_persistent_storage() else "memory",
+        "conversations": len(memory_conversations)
     })
 
 
@@ -67,20 +84,7 @@ def health():
 def chat():
     """
     Send a message and get AI response.
-    
-    Request body:
-    {
-        "message": "Hello!",
-        "conversation_id": "optional-uuid",
-        "stream": false  // optional, for streaming responses
-    }
-    
-    Response:
-    {
-        "response": "Hi there!",
-        "conversation_id": "uuid",
-        "message_id": "uuid"
-    }
+    Supports streaming for real-time responses.
     """
     try:
         data = request.json
@@ -92,18 +96,22 @@ def chat():
             return jsonify({"error": "No message provided"}), 400
         
         # Get or create conversation
-        if conversation_id and conversation_id in conversations:
-            conversation = conversations[conversation_id]
-        else:
+        conversation = None
+        if conversation_id:
+            if use_persistent_storage():
+                conversation = db_get_conversation(conversation_id)
+            else:
+                conversation = memory_conversations.get(conversation_id)
+        
+        if not conversation:
             # Create new conversation
             conversation_id = str(uuid.uuid4())
             conversation = {
                 "id": conversation_id,
                 "title": user_message[:50] + "..." if len(user_message) > 50 else user_message,
                 "messages": [],
-                "created_at": None  # Could add timestamp
+                "updated_at": datetime.utcnow().isoformat()
             }
-            conversations[conversation_id] = conversation
         
         # Add user message to history
         conversation["messages"].append({
@@ -122,27 +130,37 @@ def chat():
             # Streaming response
             def generate():
                 full_response = ""
-                stream_response = groq.chat.completions.create(
-                    model=Config.MODEL,
-                    messages=messages,
-                    temperature=0.7,
-                    max_tokens=2048,
-                    stream=True
-                )
-                
-                for chunk in stream_response:
-                    if chunk.choices[0].delta.content:
-                        content = chunk.choices[0].delta.content
-                        full_response += content
-                        yield f"data: {json.dumps({'content': content})}\n\n"
-                
-                # Save assistant response to conversation
-                conversation["messages"].append({
-                    "role": "assistant",
-                    "content": full_response
-                })
-                
-                yield f"data: {json.dumps({'done': True, 'conversation_id': conversation_id})}\n\n"
+                try:
+                    stream_response = groq.chat.completions.create(
+                        model=Config.MODEL,
+                        messages=messages,
+                        temperature=0.7,
+                        max_tokens=2048,
+                        stream=True
+                    )
+                    
+                    for chunk in stream_response:
+                        if chunk.choices[0].delta.content:
+                            content = chunk.choices[0].delta.content
+                            full_response += content
+                            yield f"data: {json.dumps({'content': content})}\n\n"
+                    
+                    # Save assistant response to conversation
+                    conversation["messages"].append({
+                        "role": "assistant",
+                        "content": full_response
+                    })
+                    conversation["updated_at"] = datetime.utcnow().isoformat()
+                    
+                    # Save to storage
+                    if use_persistent_storage():
+                        save_conversation(conversation_id, conversation["title"], conversation["messages"])
+                    else:
+                        memory_conversations[conversation_id] = conversation
+                    
+                    yield f"data: {json.dumps({'done': True, 'conversation_id': conversation_id})}\n\n"
+                except Exception as e:
+                    yield f"data: {json.dumps({'error': str(e)})}\n\n"
             
             return Response(
                 stream_with_context(generate()),
@@ -168,6 +186,13 @@ def chat():
                 "role": "assistant",
                 "content": assistant_response
             })
+            conversation["updated_at"] = datetime.utcnow().isoformat()
+            
+            # Save to storage
+            if use_persistent_storage():
+                save_conversation(conversation_id, conversation["title"], conversation["messages"])
+            else:
+                memory_conversations[conversation_id] = conversation
             
             return jsonify({
                 "response": assistant_response,
@@ -184,52 +209,118 @@ def chat():
 @app.route('/api/conversations', methods=['GET'])
 def get_conversations():
     """Get list of all conversations"""
-    # Return conversations sorted by most recent (simplified - no timestamps yet)
-    conv_list = [
-        {
-            "id": conv["id"],
-            "title": conv["title"],
-            "message_count": len(conv["messages"])
-        }
-        for conv in conversations.values()
-    ]
+    if use_persistent_storage():
+        conversations = get_all_conversations()
+        conv_list = [
+            {
+                "id": conv["id"],
+                "title": conv["title"],
+                "updated_at": conv.get("updated_at")
+            }
+            for conv in conversations
+        ]
+    else:
+        conv_list = [
+            {
+                "id": conv["id"],
+                "title": conv["title"],
+                "message_count": len(conv["messages"]),
+                "updated_at": conv.get("updated_at")
+            }
+            for conv in memory_conversations.values()
+        ]
+        # Sort by updated_at descending
+        conv_list.sort(key=lambda x: x.get("updated_at", ""), reverse=True)
+    
     return jsonify({"conversations": conv_list})
 
 
 @app.route('/api/conversations/<conversation_id>', methods=['GET'])
-def get_conversation(conversation_id):
+def get_single_conversation(conversation_id):
     """Get a specific conversation with all messages"""
-    if conversation_id not in conversations:
+    if use_persistent_storage():
+        conversation = db_get_conversation(conversation_id)
+    else:
+        conversation = memory_conversations.get(conversation_id)
+    
+    if not conversation:
         return jsonify({"error": "Conversation not found"}), 404
     
-    return jsonify(conversations[conversation_id])
+    return jsonify(conversation)
+
+
+@app.route('/api/conversations/<conversation_id>', methods=['PUT'])
+def update_conversation(conversation_id):
+    """Update a conversation (edit messages)"""
+    try:
+        data = request.json
+        
+        if use_persistent_storage():
+            conversation = db_get_conversation(conversation_id)
+        else:
+            conversation = memory_conversations.get(conversation_id)
+        
+        if not conversation:
+            return jsonify({"error": "Conversation not found"}), 404
+        
+        # Update title if provided
+        if 'title' in data:
+            conversation['title'] = data['title']
+        
+        # Update messages if provided
+        if 'messages' in data:
+            conversation['messages'] = data['messages']
+        
+        conversation['updated_at'] = datetime.utcnow().isoformat()
+        
+        # Save
+        if use_persistent_storage():
+            save_conversation(conversation_id, conversation['title'], conversation['messages'])
+        else:
+            memory_conversations[conversation_id] = conversation
+        
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route('/api/conversations/<conversation_id>', methods=['DELETE'])
-def delete_conversation(conversation_id):
+def delete_conversation_endpoint(conversation_id):
     """Delete a conversation"""
-    if conversation_id not in conversations:
+    if use_persistent_storage():
+        success = db_delete_conversation(conversation_id)
+    else:
+        success = conversation_id in memory_conversations
+        if success:
+            del memory_conversations[conversation_id]
+    
+    if not success:
         return jsonify({"error": "Conversation not found"}), 404
     
-    del conversations[conversation_id]
     return jsonify({"success": True})
 
 
 @app.route('/api/conversations', methods=['DELETE'])
-def clear_all_conversations():
+def clear_all_conversations_endpoint():
     """Delete all conversations"""
-    conversations.clear()
+    if use_persistent_storage():
+        clear_all_conversations()
+    else:
+        memory_conversations.clear()
+    
     return jsonify({"success": True})
 
 
 # ========== RUN ==========
 
 if __name__ == '__main__':
+    db_status = "Supabase (persistent)" if use_persistent_storage() else "Memory (session only)"
     print(f"""
 ╔══════════════════════════════════════════════════════════════╗
 ║                    VERITAS CHATBOT                           ║
 ║                                                              ║
 ║  Model: {Config.MODEL[:40]}...║
+║  Database: {db_status:<43}║
 ║  Server: http://{Config.HOST}:{Config.PORT}                          ║
 ║                                                              ║
 ║  Ready to chat!                                              ║
