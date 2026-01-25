@@ -1,1 +1,0 @@
-"""VERITAS Learning Package"""

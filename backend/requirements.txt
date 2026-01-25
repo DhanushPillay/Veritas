@@ -1,17 +1,5 @@
-# VERITAS Python Requirements
-# Install with: pip install -r requirements.txt
-
-groq>=0.4.0
+# Veritas Chatbot Dependencies
 flask>=3.0.0
 flask-cors>=4.0.0
-requests>=2.31.0
-pillow>=10.0.0
+groq>=0.4.0
 python-dotenv>=1.0.0
-supabase>=2.0.0
-duckduckgo-search>=5.0.0
-beautifulsoup4
-supabase>=4.12.0
-
-# ML Text Detection
-torch>=2.0.0
-transformers>=4.35.0

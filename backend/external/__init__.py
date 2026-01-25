@@ -1,1 +1,0 @@
-"""VERITAS External APIs Package"""

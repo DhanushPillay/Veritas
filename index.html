@@ -4,539 +4,117 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description"
-    content="VERITAS - Advanced AI-powered media forensics to detect deepfakes, synthetic voices, and AI-generated content with precision.">
-  <meta name="keywords" content="deepfake detection, AI verification, media forensics, fact checking, image analysis">
-  <meta name="author" content="Veritas">
-
-  <title>VERITAS - Media Verification System</title>
-
-  <!-- Favicon -->
-  <link rel="icon"
-    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230ea5e9' stroke-width='2'><path d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10'/><path d='m9 12 2 2 4-4'/></svg>">
-
-  <!-- Google Fonts -->
+  <title>Veritas - AI Chatbot</title>
+  <link rel="stylesheet" href="frontend/css/styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
-  <!-- Styles -->
-  <link rel="stylesheet" href="frontend/css/styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Marked.js for Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 
 <body>
-  <!-- Navbar -->
-  <nav class="navbar">
-    <div class="navbar-content">
-      <div class="navbar-brand">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-          stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
-          <path d="m9 12 2 2 4-4" />
-        </svg>
-        <span>VERITAS</span>
-      </div>
-      <div class="status-badge">
-        <span class="dot"></span>
-        System Operational
-      </div>
-    </div>
-  </nav>
-
-  <!-- Main Content -->
-  <main class="main-container">
-    <div class="hero" id="heroSection">
-      <h1>Verify Reality in Real-Time</h1>
-      <p>Advanced AI forensics to detect deepfakes, synthetic voices, and generated text with precision.</p>
-    </div>
-
-    <!-- Tabs -->
-    <div class="tabs" id="tabs">
-      <button class="tab-btn active" data-type="ai-detect">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-          width="18" height="18">
-          <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-        </svg>
-        <span>AI Detection</span>
-      </button>
-      <button class="tab-btn" data-type="fact-check">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-          width="18" height="18">
-          <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
-          <path d="M14 2v4a2 2 0 0 0 2 2h4" />
-          <path d="M10 9H8" />
-          <path d="M16 13H8" />
-          <path d="M16 17H8" />
-        </svg>
-        <span>Fact Check</span>
-      </button>
-      <button class="tab-btn" data-type="image">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-          width="18" height="18">
-          <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-          <circle cx="9" cy="9" r="2" />
-          <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-        </svg>
-        <span>Image Analysis</span>
-      </button>
-      <button class="tab-btn" data-type="audio">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-          width="18" height="18">
-          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
-          <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-          <line x1="12" x2="12" y1="19" y2="22" />
-        </svg>
-        <span>Voice/Audio</span>
-      </button>
-      <button class="tab-btn" data-type="video">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-          width="18" height="18">
-          <path d="m22 8-6 4 6 4V8Z" />
-          <rect width="14" height="12" x="2" y="6" rx="2" ry="2" />
-        </svg>
-        <span>Video Forensics</span>
-      </button>
-    </div>
-
-    <!-- Input Card -->
-    <div class="input-card" id="inputCard">
-      <!-- Text Input (default) -->
-      <div id="textInput" class="input-section">
-        <label class="input-label">Content to Analyze</label>
-        <textarea class="text-input" id="textArea"
-          placeholder="Paste article text, social media post, or statement here..."></textarea>
-      </div>
-
-      <!-- File Input (hidden by default) -->
-      <div id="fileInput" class="input-section hidden">
-        <label class="input-label">Upload Media Evidence</label>
-        <div class="upload-area" id="uploadArea">
-          <input type="file" id="fileSelector" accept="image/*">
-          <div class="upload-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="2" width="24" height="24">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="17 8 12 3 7 8" />
-              <line x1="12" x2="12" y1="3" y2="15" />
-            </svg>
-          </div>
-          <p class="upload-text" id="uploadText">Drop your file here</p>
-          <p class="upload-hint">or click to browse or paste (Ctrl+V)</p>
-        </div>
-      </div>
-
-      <!-- Controls -->
-      <div class="controls-row">
-        <!-- Search is now always active (Hidden UI) -->
-        <div style="flex-grow: 1;"></div>
-
-        <div style="display: flex; align-items: center; gap: 1rem;">
-          <p class="privacy-note">*Veritas processes data privately. Max 2GB.</p>
-          <button class="btn-analyze" id="analyzeBtn" disabled>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="2" width="20" height="20">
-              <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-            </svg>
-            Run Analysis
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- SCANNING UI (Hidden by default) -->
-    <div class="analyzing-container" id="scanningContainer" style="display: none;">
-      <div class="spinner-wrapper">
-        <div class="spinner"></div>
-        <div class="spinner-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            width="40" height="40">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
-            <path d="m9 12 2 2 4-4" />
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <button class="new-chat-btn" id="newChatBtn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
-        </div>
-      </div>
-      <h2 class="analyzing-title">Analyzing Integrity</h2>
-      <div class="analysis-steps" id="analysisSteps"></div>
-    </div>
-
-    <!-- RESULTS UI (Hidden by default) -->
-    <div class="results-container" id="resultsContainer" style="display: none;"></div>
-
-    <!-- Animated Background (Hidden by default, shown for results) -->
-    <div class="background-paths" id="resultBackground" style="display: none;" aria-hidden="true">
-      <svg viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
-        <path class="path" d="M-100,400 Q200,100 500,400 T1100,400 T1700,400" />
-        <path class="path" d="M-100,450 Q250,200 550,350 T1150,450 T1750,350" />
-        <path class="path" d="M-100,350 Q300,50 600,350 T1200,350 T1800,350" />
-        <path class="path" d="M-100,500 Q150,300 450,500 T1050,400 T1650,500" />
-        <path class="path" d="M-100,300 Q350,150 650,400 T1250,300 T1850,400" />
-        <path class="path" d="M-100,550 Q200,400 500,550 T1100,500 T1700,550" />
-        <path class="path" d="M-100,250 Q400,100 700,300 T1300,250 T1900,300" />
-        <path class="path" d="M-100,600 Q250,500 550,600 T1150,550 T1750,600" />
-      </svg>
-    </div>
-
-    <!-- History Section -->
-    <div class="history-section" id="historySection" style="display: none;">
-      <div class="history-header">
-        <h3 class="history-title">Recent Analysis</h3>
-        <button class="btn-clear-history" id="clearHistoryBtn">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            width="12" height="12">
-            <path d="M3 6h18" />
-            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-          </svg>
-          Clear History
+          New Chat
         </button>
       </div>
-      <div class="history-grid" id="historyGrid"></div>
-    </div>
-  </main>
 
-  <!-- Scripts -->
-  <script src="frontend/js/icons.js"></script>
-  <script src="frontend/js/shared.js"></script>
-  <script src="frontend/js/result-view.js"></script>
-  <script>
-    // ========== INDEX PAGE LOGIC ==========
-    const IndexPage = {
-      activeTab: 'ai-detect',
-      selectedFile: null,
-      useSearch: true, // Always on
-      stepInterval: null,
-      steps: [],
-      currentStep: 0,
+      <div class="sidebar-content">
+        <nav class="conversation-list" id="conversationList">
+          <!-- Conversations will be added here dynamically -->
+        </nav>
+      </div>
 
-      init() {
-        this.bindEvents();
-        this.renderHistory();
-        window.App = this; // Expose for ResultView to call resetAnalysis
-      },
+      <div class="sidebar-footer">
+        <button class="clear-btn" id="clearAllBtn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3,6 5,6 21,6"></polyline>
+            <path d="M19,6v14a2,2 0 0,1-2,2H7a2,2 0 0,1-2-2V6"></path>
+            <path d="M8,6V4a2,2 0 0,1,2-2h4a2,2 0 0,1,2,2v2"></path>
+          </svg>
+          Clear all chats
+        </button>
+      </div>
+    </aside>
 
-      resetAnalysis() {
-        // Hide Results, Show Input
-        document.getElementById('resultsContainer').style.display = 'none';
-        document.getElementById('resultBackground').style.display = 'none';
-        document.getElementById('historySection').style.display = 'block';
+    <!-- Toggle Sidebar Button (Mobile) -->
+    <button class="sidebar-toggle" id="sidebarToggle">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+      </svg>
+    </button>
 
-        document.getElementById('inputCard').style.display = 'flex';
-        document.getElementById('tabs').style.display = 'flex';
-
-        // Show hero section
-        document.getElementById('heroSection').style.display = 'block';
-
-        // Reset state
-        this.selectedFile = null;
-        document.getElementById('textArea').value = '';
-        document.getElementById('fileSelector').value = '';
-        document.getElementById('uploadText').textContent = `Drop your ${this.activeTab} file here`;
-        this.updateButtonState();
-      },
-
-      showResults(result, thumbnail) {
-        // Hide Scanning
-        document.getElementById('scanningContainer').style.display = 'none';
-
-        // Hide hero section
-        document.getElementById('heroSection').style.display = 'none';
-
-        // Show Results Container & Background
-        const resultsContainer = document.getElementById('resultsContainer');
-        resultsContainer.style.display = 'block';
-        document.getElementById('resultBackground').style.display = 'block';
-
-        // Render via ResultView module
-        resultsContainer.innerHTML = ResultView.render(result, thumbnail, this.activeTab);
-
-        // Scroll to top
-        window.scrollTo(0, 0);
-      },
-
-      bindEvents() {
-        // Tab switching
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-          btn.addEventListener('click', () => this.switchTab(btn.dataset.type));
-        });
-
-        // Text input
-        document.getElementById('textArea').addEventListener('input', () => this.updateButtonState());
-
-        // File input
-        document.getElementById('fileSelector').addEventListener('change', (e) => {
-          if (e.target.files[0]) {
-            this.selectedFile = e.target.files[0];
-            document.getElementById('uploadText').textContent = this.selectedFile.name;
-            this.updateButtonState();
-          }
-        });
-
-        // Analyze button
-        document.getElementById('analyzeBtn').addEventListener('click', () => this.startAnalysis());
-
-        // Clear history
-        document.getElementById('clearHistoryBtn').addEventListener('click', () => {
-          if (confirm('Clear all history?')) {
-            Veritas.clearHistory();
-            this.renderHistory();
-          }
-        });
-
-        // Paste handler
-        window.addEventListener('paste', (e) => {
-          if (this.activeTab === 'text') return;
-          if (e.clipboardData && e.clipboardData.files.length > 0) {
-            const file = e.clipboardData.files[0];
-            const validTypes = {
-              image: file.type.startsWith('image/'),
-              video: file.type.startsWith('video/'),
-              audio: file.type.startsWith('audio/')
-            };
-            if (validTypes[this.activeTab]) {
-              e.preventDefault();
-              this.selectedFile = file;
-              document.getElementById('uploadText').textContent = file.name;
-              this.updateButtonState();
-            }
-          }
-        });
-      },
-
-      switchTab(type) {
-        this.activeTab = type;
-        this.selectedFile = null;
-
-        // Update tab buttons
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-          btn.classList.toggle('active', btn.dataset.type === type);
-        });
-
-        // Toggle input sections
-        const isTextType = type === 'ai-detect' || type === 'fact-check';
-        document.getElementById('textInput').classList.toggle('hidden', !isTextType);
-        document.getElementById('fileInput').classList.toggle('hidden', isTextType);
-
-        // Update label and placeholder based on tab
-        const label = document.querySelector('#textInput .input-label');
-        const textarea = document.getElementById('textArea');
-        if (type === 'ai-detect') {
-          label.textContent = 'Text to Analyze for AI Detection';
-          textarea.placeholder = 'Paste text to check if it was written by AI or a human...';
-        } else if (type === 'fact-check') {
-          label.textContent = 'Claim or Statement to Fact-Check';
-          textarea.placeholder = 'Paste a claim, article, or statement to verify its accuracy...';
-        }
-
-        // Update file accept types
-        const acceptTypes = { image: 'image/*', video: 'video/*', audio: 'audio/*' };
-        document.getElementById('fileSelector').accept = acceptTypes[type] || '*';
-        document.getElementById('uploadText').textContent = `Drop your ${type} file here`;
-
-        this.updateButtonState();
-      },
-
-      updateButtonState() {
-        const btn = document.getElementById('analyzeBtn');
-        let hasInput = false;
-
-        const isTextType = this.activeTab === 'ai-detect' || this.activeTab === 'fact-check';
-        if (isTextType) {
-          hasInput = document.getElementById('textArea').value.trim().length > 0;
-        } else {
-          hasInput = this.selectedFile !== null;
-        }
-
-        btn.disabled = !hasInput;
-      },
-
-      async startAnalysis() {
-        const isTextType = this.activeTab === 'ai-detect' || this.activeTab === 'fact-check';
-        const content = isTextType
-          ? document.getElementById('textArea').value
-          : this.selectedFile;
-
-        // --- SPA: HIDE INPUT, SHOW SCANNING ---
-        document.getElementById('inputCard').style.display = 'none';
-        document.getElementById('tabs').style.display = 'none';
-        document.getElementById('scanningContainer').style.display = 'flex';
-
-        // Initialize steps
-        this.steps = this.getSteps(this.activeTab, this.useSearch);
-        this.renderSteps();
-        this.startStepAnimation();
-
-        try {
-          // Run analysis (using shared.js API call directly)
-          let thumbnail = null;
-          if (!isTextType) {
-            thumbnail = await Veritas.generateThumbnail(this.selectedFile, this.activeTab);
-          }
-
-          // Using Shared.js verify call
-          const result = await Veritas.verify(this.activeTab, content, this.useSearch);
-
-          clearInterval(this.stepInterval);
-          this.completeAnimation();
-
-          // Save lightweight record to history (avoiding large objects in localStorage)
-          Veritas.addToHistory({
-            type: this.activeTab,
-            preview: isTextType ? (content.substring(0, 60) + '...') : this.selectedFile.name,
-            thumbnail,
-            result: {
-              verdict: result.verdict,
-              confidence: result.confidence,
-              timestamp: Date.now()
-            }
-          });
-
-          // RENDER DIRECTLY (Bypassing localStorage size limits)
-          setTimeout(() => {
-            this.showResults(result, thumbnail);
-          }, 800);
-
-        } catch (error) {
-          console.error('Analysis failed:', error);
-          alert('Analysis Error: ' + error.message);
-          location.reload();
-        }
-      },
-
-      getSteps(type, useSearch) {
-        const steps = ['Initializing forensic protocols...'];
-        const typeSteps = {
-          'ai-detect': ['Loading ML model...', 'Analyzing text patterns...', 'Detecting AI writing markers...'],
-          'fact-check': ['Scraping article content...', 'Analyzing claims...', 'Searching fact-check databases...'],
-          image: ['Scanning EXIF metadata...', 'Running Error Level Analysis...', 'Checking shadow coherence...', 'Detecting AI artifacts...'],
-          audio: ['Generating spectral analysis...', 'Detecting voice cloning...', 'Analyzing breathing patterns...'],
-          video: ['Extracting keyframes...', 'Checking audio-visual sync...', 'Analyzing temporal consistency...', 'Detecting face manipulation...']
-        };
-        steps.push(...(typeSteps[type] || []));
-        if (useSearch && type === 'fact-check') {
-          steps.push('Connecting to global index...', 'Cross-referencing sources...');
-        }
-        steps.push('Compiling final verdict...');
-        return steps;
-      },
-
-      renderSteps() {
-        const container = document.getElementById('analysisSteps');
-        container.innerHTML = this.steps.map((label, idx) => `
-          <div class="step">
-            <div class="step-indicator ${idx === 0 ? 'processing' : 'pending'}"></div>
-            <span class="step-label ${idx === 0 ? 'processing' : ''}">${label}</span>
+    <!-- Main Chat Area -->
+    <main class="main-content">
+      <!-- Chat Messages -->
+      <div class="chat-container" id="chatContainer">
+        <!-- Welcome Screen -->
+        <div class="welcome-screen" id="welcomeScreen">
+          <div class="welcome-logo">
+            <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M12 16v-4"></path>
+              <path d="M12 8h.01"></path>
+            </svg>
           </div>
-        `).join('');
-      },
+          <h1>Veritas</h1>
+          <p>How can I help you today?</p>
 
-      startStepAnimation() {
-        this.currentStep = 0;
-        this.stepInterval = setInterval(() => {
-          if (this.currentStep >= this.steps.length - 1) return;
-          const indicators = document.querySelectorAll('.step-indicator');
-          const labels = document.querySelectorAll('.step-label');
+          <div class="suggestion-grid">
+            <button class="suggestion-card" data-prompt="Explain quantum computing in simple terms">
+              <span class="suggestion-icon">💡</span>
+              <span>Explain quantum computing</span>
+            </button>
+            <button class="suggestion-card" data-prompt="Write a Python function to sort a list">
+              <span class="suggestion-icon">💻</span>
+              <span>Write Python code</span>
+            </button>
+            <button class="suggestion-card" data-prompt="What are some tips for better productivity?">
+              <span class="suggestion-icon">📈</span>
+              <span>Productivity tips</span>
+            </button>
+            <button class="suggestion-card" data-prompt="Help me write a professional email">
+              <span class="suggestion-icon">✉️</span>
+              <span>Write an email</span>
+            </button>
+          </div>
+        </div>
 
-          if (indicators[this.currentStep]) {
-            indicators[this.currentStep].classList.remove('processing');
-            indicators[this.currentStep].classList.add('completed');
-            indicators[this.currentStep].innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="20 6 9 17 4 12"/></svg>`;
-            labels[this.currentStep].classList.remove('processing');
-            labels[this.currentStep].classList.add('completed');
-          }
+        <!-- Chat Messages Container -->
+        <div class="messages-container" id="messagesContainer">
+          <!-- Messages will be added here dynamically -->
+        </div>
+      </div>
 
-          this.currentStep++;
-          if (indicators[this.currentStep]) {
-            indicators[this.currentStep].classList.add('processing');
-            labels[this.currentStep].classList.add('processing');
-          }
-        }, 1200);
-      },
+      <!-- Input Area -->
+      <div class="input-area">
+        <form class="input-form" id="chatForm">
+          <div class="input-wrapper">
+            <textarea id="messageInput" placeholder="Message Veritas..." rows="1" autofocus></textarea>
+            <button type="submit" class="send-btn" id="sendBtn" disabled>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22,2 15,22 11,13 2,9"></polygon>
+              </svg>
+            </button>
+          </div>
+        </form>
+        <p class="disclaimer">Veritas may make mistakes. Consider checking important information.</p>
+      </div>
+    </main>
+  </div>
 
-      completeAnimation() {
-        document.querySelectorAll('.step-indicator').forEach(el => {
-          el.classList.remove('processing', 'pending');
-          el.classList.add('completed');
-          el.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="20 6 9 17 4 12"/></svg>`;
-        });
-        document.querySelectorAll('.step-label').forEach(el => {
-          el.classList.remove('processing');
-          el.classList.add('completed');
-        });
-      },
-
-      async renderHistory() {
-        const history = await Veritas.getHistory();
-        const section = document.getElementById('historySection');
-        const grid = document.getElementById('historyGrid');
-
-        if (!history || history.length === 0) {
-          section.style.display = 'none';
-          return;
-        }
-
-        section.style.display = 'block';
-        grid.innerHTML = history.map(item => {
-          // Supabase format: verdict is top-level, result is JSONB
-          const verdict = item.verdict || item.result?.verdict || 'Unknown';
-          const verdictClass = verdict === 'Authentic' ? 'authentic'
-            : (verdict === 'AI-Generated' || verdict === 'Suspicious') ? 'suspicious'
-              : 'inconclusive';
-
-          // Use media_url as thumbnail fallback
-          const thumbnailSrc = item.thumbnail_url || item.media_url;
-
-          return `
-            <div class="history-item">
-              <div class="history-thumb" onclick="IndexPage.loadHistoryItem('${item.id}')">
-                ${thumbnailSrc
-              ? `<img src="${thumbnailSrc}" alt="preview">`
-              : Icons.getMediaTypeIcon(item.type)}
-              </div>
-              <div class="history-content" onclick="IndexPage.loadHistoryItem('${item.id}')">
-                <div class="history-meta">
-                  <span class="history-date">${new Date(item.created_at).toLocaleDateString()}</span>
-                  <span class="history-verdict ${verdictClass}">${verdict}</span>
-                </div>
-                <p class="history-preview">${item.preview || 'No preview'}</p>
-              </div>
-              <button class="history-delete-btn" onclick="event.stopPropagation(); IndexPage.deleteHistoryItem('${item.id}')" title="Delete">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                  <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-                </svg>
-              </button>
-            </div>
-          `;
-        }).join('');
-      },
-
-      async deleteHistoryItem(id) {
-        if (!confirm('Delete this analysis?')) return;
-
-        const success = await Veritas.deleteHistoryItem(id);
-        if (success) {
-          await this.renderHistory();
-        } else {
-          alert('Failed to delete. Please try again.');
-        }
-      },
-
-      async loadHistoryItem(id) {
-        // Fetch full record from API
-        try {
-          const response = await fetch(`${Veritas.BACKEND_URL}/api/history/${id}`);
-          if (response.ok) {
-            const record = await response.json();
-            this.showResults(record.result, record.thumbnail_url || record.media_url);
-          }
-        } catch (e) {
-          console.error('Failed to load history item:', e);
-        }
-      }
-    };
-
-    // Initialize when DOM ready
-    document.addEventListener('DOMContentLoaded', () => IndexPage.init());
-  </script>
+  <script src="frontend/js/app.js"></script>
 </body>
 
 </html>
