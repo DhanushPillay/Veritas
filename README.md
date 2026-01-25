@@ -14,140 +14,64 @@
 
 ## ✨ Features
 
-### Chat
-- 💬 **Streaming Responses** - Real-time typing effect
-- 🧠 **Conversation Memory** - Maintains context within sessions
-- ✏️ **Message Editing** - Edit and regenerate responses
-- 🔄 **Regenerate** - Retry any response
-- ⏹️ **Stop Generation** - Cancel mid-response (Esc key)
+### Chat Intelligence
+- 💬 **Smart Streaming** - Real-time typing effect like the real thing
+- 🧠 **Context Awareness** - Remembers your conversation history
+- 🌐 **Web Search** - Automatically searches the web for current info
+- ✏️ **Message Editing** - Fix typos or change prompts mid-chat
+- 🔄 **Regenerate** - Not happy? Get a better response instantly
+- ⏹️ **Stop Generation** - Interrupt long responses safely
 
-### UI/UX
-- 🌙 **Dark/Light Theme** - Toggle with persistence
-- 🔍 **Search Conversations** - Filter your chat history
-- 📋 **Copy Code** - One-click copy with syntax highlighting  
-- 📤 **Export Chat** - Download as Markdown
-- ⌨️ **Keyboard Shortcuts** - Ctrl+N, Esc, Ctrl+Shift+C
+### Premium UI/UX
+- 🌙 **Adaptive Theme** - Beautiful Dark & Light modes
+- 🎨 **Syntax Highlighting** - Clean code blocks with language detection
+- 📋 **One-Click Copy** - Grab code snippets instantly
+- 🔍 **Search History** - Find past conversations in seconds
+- 📤 **Export Chat** - Save conversations as Markdown for sharing
 
-### Storage
-- 💾 **Persistent Storage** - Supabase integration (optional)
-- 🗄️ **Memory Fallback** - Works without database
-
----
-
-## 🚀 Quick Start
-
-### Prerequisites
-- Python 3.10+
-- Groq API Key ([Get one free](https://console.groq.com))
-
-### Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/DhanushPillay/Veritas.git
-cd Veritas
-
-# Create virtual environment
-python -m venv .venv
-.venv\Scripts\activate  # Windows
-source .venv/bin/activate  # Linux/Mac
-
-# Install dependencies
-pip install -r backend/requirements.txt
-
-# Configure environment
-# Edit backend/.env and add your GROQ_API_KEY
-```
-
-### Run
-
-```bash
-cd backend
-python app.py
-```
-
-Open http://localhost:5000 in your browser.
+### Power Features
+- ⌨️ **Keyboard Shortcuts** - Ctrl+N (New Chat), Esc (Stop), Ctrl+Shift+C (Copy)
+- 💾 **Auto-Save** - Never lose a chat (uses Supabase or local memory)
+- 📱 **Mobile Ready** - Fully responsive design for any device
 
 ---
 
-## ⌨️ Keyboard Shortcuts
+## ⌨️ Shortcuts Reference
 
 | Shortcut | Action |
 |----------|--------|
 | `Enter` | Send message |
 | `Shift + Enter` | New line |
-| `Ctrl + N` | New chat |
-| `Esc` | Stop generation |
+| `Ctrl + N` | Start new chat |
+| `Esc` | Stop generating |
 | `Ctrl + Shift + C` | Copy last response |
 
 ---
 
-## 📁 Project Structure
+## � API Overview
 
-```
-Veritas/
-├── backend/
-│   ├── app.py           # Flask API server
-│   ├── config.py        # Configuration
-│   ├── database.py      # Supabase client
-│   ├── requirements.txt # Dependencies
-│   └── .env             # API keys (create this)
-├── frontend/
-│   ├── css/styles.css   # Dark/Light theme styling
-│   └── js/app.js        # Chat functionality
-└── index.html           # Main page
-```
-
----
-
-## 🔌 API Endpoints
-
+### Chat & Search
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/chat` | POST | Send message (supports streaming) |
-| `/api/conversations` | GET | List all conversations |
-| `/api/conversations/<id>` | GET | Get conversation history |
-| `/api/conversations/<id>` | PUT | Update conversation |
-| `/api/conversations/<id>` | DELETE | Delete conversation |
-| `/api/health` | GET | Health check |
+| `/api/chat` | POST | Send message (auto-detects if search needed) |
+| `/api/search` | POST | Direct web search (DuckDuckGo provider) |
+
+### Conversation Management
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/conversations` | GET | List history |
+| `/api/conversations/<id>` | GET/PUT/DEL | Manage specific chat |
 
 ---
 
-## 🔧 Configuration
+## �️ Tech Stack
 
-Create `backend/.env`:
-
-```env
-GROQ_API_KEY=your_groq_api_key
-
-# Optional: Supabase for persistent storage
-SUPABASE_URL=your_supabase_url
-SUPABASE_KEY=your_supabase_key
-```
-
-### Supabase Setup (Optional)
-
-Create a `conversations` table:
-
-```sql
-CREATE TABLE conversations (
-  id UUID PRIMARY KEY,
-  title TEXT,
-  messages JSONB,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-```
-
----
-
-## 🛠️ Tech Stack
-
-- **Backend**: Flask + Groq API (LLaMA 4)
-- **Frontend**: Vanilla HTML/CSS/JS
-- **Styling**: CSS Variables (Dark/Light themes)
-- **Markdown**: Marked.js
-- **Syntax Highlighting**: Highlight.js
-- **Database**: Supabase (optional)
+- **AI Core**: Groq API (LLaMA 4)
+- **Backend**: Flask (Python)
+- **Frontend**: Vanilla JS + CSS3 (No heavy frameworks)
+- **Search**: DuckDuckGo API
+- **Storage**: Supabase (Optional)
+- **Rendering**: Marked.js + Highlight.js
 
 ---
 
