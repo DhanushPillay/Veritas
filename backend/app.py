@@ -1,9 +1,10 @@
 """
 Veritas Chatbot - Flask Backend
-A ChatGPT-like chatbot powered by Groq's LLaMA 4
+A ChatGPT-like chatbot powered by Groq's LLaMA 4 with web search capabilities
 """
 
 import os
+import re
 import json
 import uuid
 from datetime import datetime
@@ -12,6 +13,7 @@ from flask_cors import CORS
 from groq import Groq
 
 from config import Config
+from web_search import search_web, format_search_results
 
 # Try to import database module (optional Supabase)
 try:
@@ -48,13 +50,78 @@ def get_client():
 
 
 # In-memory conversation storage (fallback if no database)
-# Structure: {conversation_id: {id, title, messages: [{role, content}], updated_at}}
 memory_conversations = {}
 
 
 def use_persistent_storage():
     """Check if we should use persistent storage"""
     return USE_DATABASE and is_supabase_available()
+
+
+def extract_search_query(response: str) -> str | None:
+    """Extract search query from AI response if it requests a search"""
+    # Look for [SEARCH: query] pattern
+    match = re.search(r'\[SEARCH:\s*(.+?)\]', response, re.IGNORECASE)
+    if match:
+        return match.group(1).strip()
+    return None
+
+
+def get_ai_response(messages: list, groq_client, use_search_context: bool = False) -> str:
+    """Get a non-streaming response from the AI"""
+    system_prompt = Config.SEARCH_CONTEXT_PROMPT if use_search_context else Config.SYSTEM_PROMPT
+    
+    full_messages = [{"role": "system", "content": system_prompt}] + messages
+    
+    completion = groq_client.chat.completions.create(
+        model=Config.MODEL,
+        messages=full_messages,
+        temperature=0.7,
+        max_tokens=2048
+    )
+    
+    return completion.choices[0].message.content
+
+
+def process_with_search(user_message: str, conversation_messages: list, groq_client) -> tuple[str, bool]:
+    """
+    Process a message, potentially with web search.
+    Returns (response, was_search_used)
+    """
+    # First, get initial AI response
+    messages = conversation_messages + [{"role": "user", "content": user_message}]
+    initial_response = get_ai_response(messages, groq_client)
+    
+    # Check if AI requested a search
+    search_query = extract_search_query(initial_response)
+    
+    if search_query and Config.WEB_SEARCH_ENABLED:
+        # Perform web search
+        search_results = search_web(search_query)
+        
+        if search_results:
+            # Format search results
+            formatted_results = format_search_results(search_results)
+            
+            # Create new messages with search context
+            search_context = f"""The user asked: "{user_message}"
+
+I searched the web for: "{search_query}"
+
+{formatted_results}
+
+Based on these search results, please provide a helpful and accurate response to the user's question. 
+Cite sources when appropriate."""
+            
+            # Get new response with search context
+            messages_with_search = conversation_messages + [
+                {"role": "user", "content": search_context}
+            ]
+            
+            final_response = get_ai_response(messages_with_search, groq_client, use_search_context=True)
+            return final_response, True
+    
+    return initial_response, False
 
 
 # ========== FRONTEND ROUTES ==========
@@ -74,6 +141,7 @@ def health():
         "status": "ok",
         "model": Config.MODEL,
         "database": "supabase" if use_persistent_storage() else "memory",
+        "web_search": Config.WEB_SEARCH_ENABLED,
         "conversations": len(memory_conversations)
     })
 
@@ -85,6 +153,7 @@ def chat():
     """
     Send a message and get AI response.
     Supports streaming for real-time responses.
+    Now with automatic web search for unknown topics.
     """
     try:
         data = request.json
@@ -104,7 +173,6 @@ def chat():
                 conversation = memory_conversations.get(conversation_id)
         
         if not conversation:
-            # Create new conversation
             conversation_id = str(uuid.uuid4())
             conversation = {
                 "id": conversation_id,
@@ -119,18 +187,21 @@ def chat():
             "content": user_message
         })
         
-        # Build messages for Groq API
-        messages = [
-            {"role": "system", "content": Config.SYSTEM_PROMPT}
-        ] + conversation["messages"]
-        
         groq = get_client()
         
         if stream:
-            # Streaming response
+            # Streaming response with search support
             def generate():
                 full_response = ""
+                search_used = False
+                
                 try:
+                    # Build messages for initial response
+                    messages = [
+                        {"role": "system", "content": Config.SYSTEM_PROMPT}
+                    ] + conversation["messages"]
+                    
+                    # First pass - check if search is needed
                     stream_response = groq.chat.completions.create(
                         model=Config.MODEL,
                         messages=messages,
@@ -145,20 +216,67 @@ def chat():
                             full_response += content
                             yield f"data: {json.dumps({'content': content})}\n\n"
                     
-                    # Save assistant response to conversation
+                    # Check if AI requested a search
+                    search_query = extract_search_query(full_response)
+                    
+                    if search_query and Config.WEB_SEARCH_ENABLED:
+                        # Notify user we're searching
+                        yield f"data: {json.dumps({'content': '\\n\\n🔍 *Searching the web...*\\n\\n'})}\n\n"
+                        
+                        # Perform search
+                        search_results = search_web(search_query)
+                        
+                        if search_results:
+                            # Clear the old response indicator
+                            full_response = ""
+                            
+                            # Format and send search context
+                            formatted_results = format_search_results(search_results)
+                            
+                            search_context = f"""The user asked: "{user_message}"
+
+I searched the web for: "{search_query}"
+
+{formatted_results}
+
+Based on these search results, please provide a helpful response. Cite sources."""
+                            
+                            # Get new response with search context
+                            search_messages = [
+                                {"role": "system", "content": Config.SEARCH_CONTEXT_PROMPT},
+                                {"role": "user", "content": search_context}
+                            ]
+                            
+                            search_stream = groq.chat.completions.create(
+                                model=Config.MODEL,
+                                messages=search_messages,
+                                temperature=0.7,
+                                max_tokens=2048,
+                                stream=True
+                            )
+                            
+                            for chunk in search_stream:
+                                if chunk.choices[0].delta.content:
+                                    content = chunk.choices[0].delta.content
+                                    full_response += content
+                                    yield f"data: {json.dumps({'content': content})}\n\n"
+                            
+                            search_used = True
+                    
+                    # Save assistant response
                     conversation["messages"].append({
                         "role": "assistant",
                         "content": full_response
                     })
                     conversation["updated_at"] = datetime.utcnow().isoformat()
                     
-                    # Save to storage
                     if use_persistent_storage():
                         save_conversation(conversation_id, conversation["title"], conversation["messages"])
                     else:
                         memory_conversations[conversation_id] = conversation
                     
-                    yield f"data: {json.dumps({'done': True, 'conversation_id': conversation_id})}\n\n"
+                    yield f"data: {json.dumps({'done': True, 'conversation_id': conversation_id, 'search_used': search_used})}\n\n"
+                    
                 except Exception as e:
                     yield f"data: {json.dumps({'error': str(e)})}\n\n"
             
@@ -171,35 +289,54 @@ def chat():
                 }
             )
         else:
-            # Non-streaming response
-            completion = groq.chat.completions.create(
-                model=Config.MODEL,
-                messages=messages,
-                temperature=0.7,
-                max_tokens=2048
+            # Non-streaming response with search
+            response, search_used = process_with_search(
+                user_message, 
+                conversation["messages"][:-1],  # Exclude the just-added user message
+                groq
             )
             
-            assistant_response = completion.choices[0].message.content
-            
-            # Save assistant response to conversation
             conversation["messages"].append({
                 "role": "assistant",
-                "content": assistant_response
+                "content": response
             })
             conversation["updated_at"] = datetime.utcnow().isoformat()
             
-            # Save to storage
             if use_persistent_storage():
                 save_conversation(conversation_id, conversation["title"], conversation["messages"])
             else:
-                memory_conversations[conversation_id] = conversation
+                memory_conversations[conversation_id] = response
             
             return jsonify({
-                "response": assistant_response,
+                "response": response,
                 "conversation_id": conversation_id,
-                "message_id": str(uuid.uuid4())
+                "message_id": str(uuid.uuid4()),
+                "search_used": search_used
             })
             
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ========== SEARCH API ==========
+
+@app.route('/api/search', methods=['POST'])
+def search():
+    """Direct web search endpoint"""
+    try:
+        data = request.json
+        query = data.get('query', '').strip()
+        
+        if not query:
+            return jsonify({"error": "No query provided"}), 400
+        
+        results = search_web(query)
+        
+        return jsonify({
+            "query": query,
+            "results": results
+        })
+        
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -228,8 +365,8 @@ def get_conversations():
                 "updated_at": conv.get("updated_at")
             }
             for conv in memory_conversations.values()
+            if isinstance(conv, dict)
         ]
-        # Sort by updated_at descending
         conv_list.sort(key=lambda x: x.get("updated_at", ""), reverse=True)
     
     return jsonify({"conversations": conv_list})
@@ -263,17 +400,14 @@ def update_conversation(conversation_id):
         if not conversation:
             return jsonify({"error": "Conversation not found"}), 404
         
-        # Update title if provided
         if 'title' in data:
             conversation['title'] = data['title']
         
-        # Update messages if provided
         if 'messages' in data:
             conversation['messages'] = data['messages']
         
         conversation['updated_at'] = datetime.utcnow().isoformat()
         
-        # Save
         if use_persistent_storage():
             save_conversation(conversation_id, conversation['title'], conversation['messages'])
         else:
@@ -315,12 +449,14 @@ def clear_all_conversations_endpoint():
 
 if __name__ == '__main__':
     db_status = "Supabase (persistent)" if use_persistent_storage() else "Memory (session only)"
+    search_status = "Enabled" if Config.WEB_SEARCH_ENABLED else "Disabled"
     print(f"""
 ╔══════════════════════════════════════════════════════════════╗
 ║                    VERITAS CHATBOT                           ║
 ║                                                              ║
 ║  Model: {Config.MODEL[:40]}...║
 ║  Database: {db_status:<43}║
+║  Web Search: {search_status:<41}║
 ║  Server: http://{Config.HOST}:{Config.PORT}                          ║
 ║                                                              ║
 ║  Ready to chat!                                              ║
