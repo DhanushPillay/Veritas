@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 
 <head>
   <meta charset="UTF-8">
@@ -9,6 +9,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Highlight.js for code syntax highlighting -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <!-- Marked.js for Markdown rendering -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
@@ -34,6 +37,22 @@
       </div>
 
       <div class="sidebar-footer">
+        <button class="sidebar-action-btn" id="themeToggle" title="Toggle theme">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5" />
+            <path
+              d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+          </svg>
+          <span>Toggle Theme</span>
+        </button>
+        <button class="sidebar-action-btn" onclick="exportChat()" title="Export chat">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7,10 12,15 17,10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          <span>Export Chat</span>
+        </button>
         <button class="clear-btn" id="clearAllBtn">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="3,6 5,6 21,6"></polyline>
@@ -75,7 +94,8 @@
               <span class="suggestion-icon">💡</span>
               <span>Explain quantum computing</span>
             </button>
-            <button class="suggestion-card" data-prompt="Write a Python function to sort a list">
+            <button class="suggestion-card"
+              data-prompt="Write a Python function to sort a list using quicksort with comments explaining each step">
               <span class="suggestion-icon">💻</span>
               <span>Write Python code</span>
             </button>
@@ -83,10 +103,16 @@
               <span class="suggestion-icon">📈</span>
               <span>Productivity tips</span>
             </button>
-            <button class="suggestion-card" data-prompt="Help me write a professional email">
+            <button class="suggestion-card" data-prompt="Help me write a professional email to decline a meeting">
               <span class="suggestion-icon">✉️</span>
               <span>Write an email</span>
             </button>
+          </div>
+
+          <div class="keyboard-hints">
+            <span><kbd>Enter</kbd> to send</span>
+            <span><kbd>Shift</kbd>+<kbd>Enter</kbd> new line</span>
+            <span><kbd>Ctrl</kbd>+<kbd>N</kbd> new chat</span>
           </div>
         </div>
 
@@ -107,9 +133,14 @@
                 <polygon points="22,2 15,22 11,13 2,9"></polygon>
               </svg>
             </button>
+            <button type="button" class="stop-btn" id="stopBtn" style="display: none;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="6" y="6" width="12" height="12" rx="2" />
+              </svg>
+            </button>
           </div>
         </form>
-        <p class="disclaimer">Veritas may make mistakes. Consider checking important information.</p>
+        <p class="disclaimer">Veritas may make mistakes. Press <kbd>Esc</kbd> to stop generation.</p>
       </div>
     </main>
   </div>

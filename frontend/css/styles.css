@@ -2,8 +2,9 @@
    VERITAS CHATBOT - ChatGPT-STYLE THEME
    ======================================== */
 
-/* CSS Variables */
-:root {
+/* CSS Variables - Dark Theme (Default) */
+:root,
+[data-theme="dark"] {
     /* Dark Theme Colors */
     --bg-primary: #212121;
     --bg-secondary: #171717;
@@ -20,6 +21,9 @@
     --border-color: #3a3a3a;
     --shadow: rgba(0, 0, 0, 0.3);
 
+    --code-bg: #1e1e1e;
+    --code-header-bg: #2d2d2d;
+
     /* Sizing */
     --sidebar-width: 260px;
     --max-chat-width: 768px;
@@ -28,6 +32,27 @@
     /* Transitions */
     --transition-fast: 0.15s ease;
     --transition-normal: 0.25s ease;
+}
+
+/* Light Theme */
+[data-theme="light"] {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f7f7f8;
+    --bg-tertiary: #ececec;
+    --bg-hover: #e0e0e0;
+
+    --text-primary: #1a1a1a;
+    --text-secondary: #4a4a4a;
+    --text-muted: #6e6e6e;
+
+    --accent: #10a37f;
+    --accent-hover: #0d8a6c;
+
+    --border-color: #d9d9d9;
+    --shadow: rgba(0, 0, 0, 0.1);
+
+    --code-bg: #f6f8fa;
+    --code-header-bg: #e8eaed;
 }
 
 /* Reset & Base */
@@ -51,6 +76,7 @@ body {
     color: var(--text-primary);
     line-height: 1.6;
     font-size: 15px;
+    transition: background-color var(--transition-normal), color var(--transition-normal);
 }
 
 /* App Container */
@@ -67,7 +93,7 @@ body {
     display: flex;
     flex-direction: column;
     border-right: 1px solid var(--border-color);
-    transition: transform var(--transition-normal);
+    transition: transform var(--transition-normal), background-color var(--transition-normal);
 }
 
 .sidebar-header {
@@ -160,6 +186,29 @@ body {
 .sidebar-footer {
     padding: 12px;
     border-top: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.sidebar-action-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: none;
+    border: none;
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    cursor: pointer;
+    transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.sidebar-action-btn:hover {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
 }
 
 .clear-btn {
@@ -249,6 +298,7 @@ body {
     background: linear-gradient(90deg, var(--text-primary), var(--accent));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .welcome-screen p {
@@ -288,6 +338,23 @@ body {
 
 .suggestion-icon {
     font-size: 20px;
+}
+
+.keyboard-hints {
+    display: flex;
+    gap: 16px;
+    margin-top: 32px;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.keyboard-hints kbd {
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-family: inherit;
+    font-size: 11px;
 }
 
 /* Messages Container */
@@ -345,10 +412,51 @@ body {
     color: white;
 }
 
-.message-text {
+.message-body {
     flex: 1;
+    min-width: 0;
+}
+
+.message-text {
     line-height: 1.7;
     padding-top: 4px;
+}
+
+/* Message Actions */
+.message-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+}
+
+.message:hover .message-actions {
+    opacity: 1;
+}
+
+.action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.action-btn:hover {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.action-btn.copied {
+    color: var(--accent);
+    border-color: var(--accent);
 }
 
 /* Markdown Styling */
@@ -386,25 +494,11 @@ body {
 }
 
 .message-text code {
-    background-color: var(--bg-tertiary);
+    background-color: var(--code-bg);
     padding: 2px 6px;
     border-radius: 4px;
-    font-family: 'Fira Code', 'Consolas', monospace;
+    font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
     font-size: 0.9em;
-}
-
-.message-text pre {
-    background-color: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 16px;
-    overflow-x: auto;
-    margin: 12px 0;
-}
-
-.message-text pre code {
-    background: none;
-    padding: 0;
 }
 
 .message-text blockquote {
@@ -421,6 +515,66 @@ body {
 
 .message-text a:hover {
     text-decoration: underline;
+}
+
+/* Code Block Styling */
+.code-block {
+    margin: 12px 0;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+}
+
+.code-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background-color: var(--code-header-bg);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.code-lang {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: lowercase;
+}
+
+.copy-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    background: none;
+    border: none;
+    border-radius: 4px;
+    color: var(--text-muted);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.copy-btn:hover {
+    background-color: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.copy-btn.copied {
+    color: var(--accent);
+}
+
+.code-block pre {
+    margin: 0;
+    padding: 16px;
+    background-color: var(--code-bg);
+    overflow-x: auto;
+}
+
+.code-block pre code {
+    background: none;
+    padding: 0;
+    font-size: 13px;
+    line-height: 1.5;
 }
 
 /* Typing Indicator */
@@ -514,7 +668,8 @@ body {
     outline: none;
 }
 
-.send-btn {
+.send-btn,
+.stop-btn {
     width: 36px;
     height: 36px;
     display: flex;
@@ -539,11 +694,28 @@ body {
     background-color: var(--accent-hover);
 }
 
+.stop-btn {
+    background-color: #ef4444;
+}
+
+.stop-btn:hover {
+    background-color: #dc2626;
+}
+
 .disclaimer {
     margin-top: 12px;
     color: var(--text-muted);
     font-size: 12px;
     text-align: center;
+}
+
+.disclaimer kbd {
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 1px 4px;
+    font-family: inherit;
+    font-size: 11px;
 }
 
 /* ========== RESPONSIVE ========== */
@@ -572,6 +744,10 @@ body {
     .message-content {
         padding: 0 12px;
     }
+
+    .keyboard-hints {
+        display: none;
+    }
 }
 
 /* Scrollbar Styling */
@@ -590,4 +766,10 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
     background-color: var(--bg-hover);
+}
+
+/* Syntax Highlighting Theme Override for Light Mode */
+[data-theme="light"] .hljs {
+    background: var(--code-bg);
+    color: #24292e;
 }
