@@ -4,8 +4,12 @@ Handles persistent storage of conversations
 """
 
 import os
+import logging
 from datetime import datetime
 from supabase import create_client, Client
+
+# Configure logger
+logger = logging.getLogger(__name__)
 
 # Initialize Supabase client
 _supabase: Client | None = None
@@ -24,7 +28,7 @@ def get_supabase() -> Client | None:
         try:
             _supabase = create_client(url, key)
         except Exception as e:
-            print(f"Failed to connect to Supabase: {e}")
+            logger.error(f"Failed to connect to Supabase: {e}", exc_info=True)
             return None
     
     return _supabase
@@ -55,7 +59,7 @@ def save_conversation(conversation_id: str, title: str, messages: list) -> bool:
         supabase.table("conversations").upsert(data).execute()
         return True
     except Exception as e:
-        print(f"Error saving conversation: {e}")
+        logger.error(f"Error saving conversation: {e}", exc_info=True)
         return False
 
 
@@ -69,7 +73,7 @@ def get_conversation(conversation_id: str) -> dict | None:
         result = supabase.table("conversations").select("*").eq("id", conversation_id).single().execute()
         return result.data
     except Exception as e:
-        print(f"Error getting conversation: {e}")
+        logger.error(f"Error getting conversation: {e}", exc_info=True)
         return None
 
 
@@ -83,7 +87,7 @@ def get_all_conversations(limit: int = 50) -> list:
         result = supabase.table("conversations").select("id, title, updated_at").order("updated_at", desc=True).limit(limit).execute()
         return result.data or []
     except Exception as e:
-        print(f"Error getting conversations: {e}")
+        logger.error(f"Error getting conversations: {e}", exc_info=True)
         return []
 
 
@@ -97,7 +101,7 @@ def delete_conversation(conversation_id: str) -> bool:
         supabase.table("conversations").delete().eq("id", conversation_id).execute()
         return True
     except Exception as e:
-        print(f"Error deleting conversation: {e}")
+        logger.error(f"Error deleting conversation: {e}", exc_info=True)
         return False
 
 
@@ -112,5 +116,5 @@ def clear_all_conversations() -> bool:
         supabase.table("conversations").delete().neq("id", "").execute()
         return True
     except Exception as e:
-        print(f"Error clearing conversations: {e}")
+        logger.error(f"Error clearing conversations: {e}", exc_info=True)
         return False
