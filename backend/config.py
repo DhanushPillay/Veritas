@@ -11,9 +11,10 @@ class Config:
     GROQ_API_KEY = os.environ.get('GROQ_API_KEY', '')
     
     # Server settings
-    HOST = '127.0.0.1'
-    PORT = 5000
-    DEBUG = True
+    HOST = os.environ.get('HOST', '127.0.0.1')
+    PORT = int(os.environ.get('PORT', 5000))
+    DEBUG = os.environ.get('FLASK_DEBUG', 'True').lower() == 'true'
+    LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO').upper()
     
     # AI Model
     MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct'
