@@ -4,7 +4,11 @@ Uses DuckDuckGo for free web searches
 """
 
 import requests
+import logging
 from urllib.parse import quote_plus
+
+# Configure logger
+logger = logging.getLogger(__name__)
 
 
 def search_web(query: str, max_results: int = 5) -> list[dict]:
@@ -50,7 +54,7 @@ def search_web(query: str, max_results: int = 5) -> list[dict]:
         return results[:max_results]
         
     except Exception as e:
-        print(f"Search error: {e}")
+        logger.error(f"Search error: {e}", exc_info=True)
         return []
 
 
@@ -94,7 +98,7 @@ def _search_ddg_lite(query: str, max_results: int = 5) -> list[dict]:
         return results
         
     except Exception as e:
-        print(f"DDG Lite search error: {e}")
+        logger.error(f"DDG Lite search error: {e}", exc_info=True)
         return []
 
 
